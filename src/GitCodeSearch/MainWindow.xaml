@@ -1,0 +1,83 @@
+﻿<Window x:Class="GitCodeSearch.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GitCodeSearch" WindowStartupLocation="CenterScreen"
+        mc:Ignorable="d"
+        Title="Git Code Search" Height="768" Width="1024">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition  Height="Auto" />
+            <RowDefinition  Height="Auto" />
+            <RowDefinition />
+            <RowDefinition  Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel LastChildFill="True" Margin="6,2">
+
+            <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Command="{Binding SearchCommand}" />
+            
+            <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1">
+                <ComboBoxItem Content="upstream/master" />
+            </ComboBox>
+            
+            <TextBox Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
+        </DockPanel>
+        <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
+            <CheckBox Margin="2" VerticalAlignment="Center" Content="Case sensitive" />
+            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" FontFamily="Segoe UI Symbol" Padding="5,2">
+            </Button>
+        </DockPanel>
+
+        <!--<Border Grid.Row="1" Margin="2"
+                Grid.ColumnSpan="2" 
+                BorderBrush="{StaticResource {x:Static SystemColors.ActiveBorderBrushKey}}" 
+                BorderThickness="1" 
+                Background="{StaticResource {x:Static SystemColors.InfoBrushKey}}" >
+            <TextBlock VerticalAlignment="Center" Margin="5,2">
+                <Run Text="Searching " />
+                <Run Text="{Binding Repository, Mode=OneWay}" />
+                <Run Text="..." />
+                <InlineUIContainer BaselineAlignment="Center">
+                    <Button Content="Cancel" Padding="5,1" MinWidth="75" Margin="5,0"></Button>
+                </InlineUIContainer>
+            </TextBlock>
+        </Border>-->
+
+        <ListBox Grid.Row="2" Margin="8" Padding="0" ItemsSource="{Binding Results}" ScrollViewer.VerticalScrollBarVisibility="Visible" FontFamily="Consolas">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock>
+                        <Run Text="{Binding Path, Mode=OneWay}" FontWeight="Bold" />
+                        <Run Text="{Binding Text, Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StatusBar Grid.Row="3" Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}" BorderThickness="0,1,0,0" BorderBrush="{StaticResource {x:Static SystemColors.ActiveBorderBrushKey}}">
+            <StatusBarItem Margin="5,2" MinWidth="200">
+                <TextBlock>
+                    <Run Text="{Binding Results.Count, Mode=OneWay}" />
+                    <Run Text="matches found" />
+                </TextBlock>
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem Margin="5,2" Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock>
+                    <Run Text="Searching" />
+                    <Run Text="{Binding SearchedRepository, Mode=OneWay}" />
+                    <Run Text="..." />
+                    <Hyperlink Command="{Binding CancelSearchCommand}">
+                        <Run Text="Cancel" />
+                    </Hyperlink>
+                </TextBlock>
+            </StatusBarItem>
+      
+        </StatusBar>
+    </Grid>
+</Window>
