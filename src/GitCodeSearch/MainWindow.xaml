@@ -3,11 +3,15 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:GitCodeSearch" WindowStartupLocation="CenterScreen"
+        xmlns:local="clr-namespace:GitCodeSearch" 
+        xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
+        WindowStartupLocation="CenterScreen"
         mc:Ignorable="d"
         Title="Git Code Search" Height="768" Width="1024">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:NullReplaceConverter x:Key="NullReplaceConverter" />
+        <converters:EnumerableNullReplaceConverter x:Key="EnumerableNullReplaceConverter"/>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -22,8 +26,8 @@
             <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Command="{Binding SearchCommand}" />
 
             <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1" MinWidth="150"
-                      ItemsSource="{Binding Branches}" 
-                      SelectedValue="{Binding Branch, Mode=TwoWay}" />
+                      ItemsSource="{Binding Branches, Converter={StaticResource EnumerableNullReplaceConverter}, ConverterParameter='(local)'}" 
+                      SelectedValue="{Binding Branch, Mode=TwoWay, Converter={StaticResource NullReplaceConverter}, ConverterParameter='(local)'}" />
 
 
             <TextBox Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
