@@ -28,7 +28,7 @@ namespace GitCodeSearch.Model
 
     public static class GitHelper
     {
-        public static async IAsyncEnumerable<SearchResult> SearchAsync(string query, string repository, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<SearchResult> SearchAsync(string query, string repository, string? branch = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var psi = new ProcessStartInfo("git");
             psi.WorkingDirectory = repository;
@@ -38,7 +38,10 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("--line-number");
             psi.ArgumentList.Add("--column");
             psi.ArgumentList.Add(query);
-            psi.ArgumentList.Add("upstream/master");
+
+            if (branch != null)
+                psi.ArgumentList.Add(branch);
+
             psi.RedirectStandardOutput = true;
             psi.CreateNoWindow = true;
 
@@ -62,6 +65,63 @@ namespace GitCodeSearch.Model
                 if (indexOfTab >= 0)
                     yield return new SearchResult(repository, line[indexOfTab..], line[..indexOfTab]);
             }
+        }
+
+        public static async Task FetchAsync(string repository)
+        {
+            var psi = new ProcessStartInfo("git");
+
+            psi.WorkingDirectory = repository;
+            psi.ArgumentList.Add("fetch");
+            psi.ArgumentList.Add("--all");
+            psi.CreateNoWindow = true;
+
+            var process = Process.Start(psi);
+
+            if (process == null)
+                return;
+
+            await process.WaitForExitAsync();
+        }
+
+        public static bool IsRepository(string repository)
+        {
+            if (string.IsNullOrEmpty(repository))
+                return false;
+            if (!Directory.Exists(repository))
+                return false;
+            if (!Directory.Exists(Path.Combine(repository, ".git")))
+                return false;
+            return true;
+        }
+
+        public static async Task<string[]> GetBranchesAsync(string repository)
+        {
+            var psi = new ProcessStartInfo("git");
+
+            psi.WorkingDirectory = repository;
+            psi.ArgumentList.Add("branch");
+            psi.ArgumentList.Add("-r");
+            psi.CreateNoWindow = true;
+            psi.RedirectStandardOutput = true;
+
+            var process = Process.Start(psi);
+
+            if (process == null)
+                return Array.Empty<string>();
+
+            await process.WaitForExitAsync();
+
+            var reader = process.StandardOutput;
+
+            var result = new List<string>();
+
+            while(reader.ReadLine() is string line)
+            {
+                result.Add(line.Trim());
+            }
+
+            return result.ToArray();
         }
     }
 }

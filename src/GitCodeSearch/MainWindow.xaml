@@ -20,17 +20,20 @@
         <DockPanel LastChildFill="True" Margin="6,2">
 
             <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Command="{Binding SearchCommand}" />
-            
-            <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1">
-                <ComboBoxItem Content="upstream/master" />
-            </ComboBox>
-            
+
+            <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1" MinWidth="150"
+                      ItemsSource="{Binding Branches}" 
+                      SelectedValue="{Binding Branch, Mode=TwoWay}" />
+
+
             <TextBox Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
         </DockPanel>
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" VerticalAlignment="Center" Content="Case sensitive" />
-            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" FontFamily="Segoe UI Symbol" Padding="5,2">
-            </Button>
+            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" 
+                    ToolTip="Settings" FontFamily="Segoe UI Symbol" Padding="5,2" />
+            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding FetchAllCommand}" Content=""
+                    ToolTip="Fetch All" FontFamily="Segoe UI Symbol" Padding="5,2" />
         </DockPanel>
 
         <!--<Border Grid.Row="1" Margin="2"
@@ -70,14 +73,24 @@
             <StatusBarItem Margin="5,2" Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock>
                     <Run Text="Searching" />
-                    <Run Text="{Binding SearchedRepository, Mode=OneWay}" />
+                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
                     <Run Text="..." />
-                    <Hyperlink Command="{Binding CancelSearchCommand}">
+                    <Hyperlink Command="{Binding SearchCommand.CancelCommand}">
                         <Run Text="Cancel" />
                     </Hyperlink>
                 </TextBlock>
             </StatusBarItem>
-      
+            <StatusBarItem Margin="5,2" Visibility="{Binding FetchAllCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock>
+                    <Run Text="Fetching" />
+                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
+                    <Run Text="..." />
+                    <Hyperlink Command="{Binding FetchAllCommand.CancelCommand}">
+                        <Run Text="Cancel" />
+                    </Hyperlink>
+                </TextBlock>
+            </StatusBarItem>
+
         </StatusBar>
     </Grid>
 </Window>

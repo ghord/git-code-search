@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.DirectoryServices.ActiveDirectory;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -19,40 +20,43 @@ namespace GitCodeSearch.ViewModels
         private string search_ = string.Empty;
         private readonly Window owner_;
         private Settings settings_;
-        private string? searchedRepository_;
-        private CancellationTokenSource cts_ = new CancellationTokenSource();
+        private string? currentRepository_;
+        private string? branch_;
 
         public MainViewModel(Window owner, Settings settings)
         {
             settings_ = settings;
-
             SearchCommand = new RelayCommand(SearchAsync);
             SettingsCommand = new RelayCommand(SettingsAsync);
-            CancelSearchCommand = new RelayCommand(CancelSearch);
+            FetchAllCommand = new RelayCommand(FetchAllAsync);
+            branch_ = settings.LastBranch;
             this.owner_ = owner;
         }
 
-        private void CancelSearch()
-        {
-            cts_.Cancel();
-        }
-
+        public ObservableCollection<string> Branches { get; } = new ObservableCollection<string>();
+   
+       
         public string Search
         {
             get { return search_; }
             set { SetField(ref search_, value); }
         }
 
-        public string? SearchedRepository
+        public string? CurrentRepository
         {
-            get { return searchedRepository_; }
-            set { SetField(ref searchedRepository_, value); }
+            get { return currentRepository_; }
+            set { SetField(ref currentRepository_, value); }
+        }
+
+        public string? Branch
+        {
+            get { return branch_; }
+            set { SetField(ref branch_, value); }
         }
 
         public ICommand SearchCommand { get; }
         public ICommand SettingsCommand { get; }
-
-        public ICommand CancelSearchCommand { get; }
+        public ICommand FetchAllCommand { get; }
 
         public ObservableCollection<SearchResult> Results { get; } = new ObservableCollection<SearchResult>();
 
@@ -65,37 +69,91 @@ namespace GitCodeSearch.ViewModels
             {
                 settings_ = viewModel.GetSettings();
                 await settings_.SaveAsync(Settings.DefaultPath);
+
+
+                await UpdateBranchesAsync();
+
             }
         }
 
-        private async Task SearchAsync()
+        public async Task UpdateBranchesAsync()
+        {
+            var previousBranch = Branch;
+
+            HashSet<string>? branches = null;
+
+            foreach(var repository in settings_.GetValidatedGitRepositories())
+            {
+                if (branches is null)
+                    branches = new HashSet<string>(await GitHelper.GetBranchesAsync(repository));
+                else
+                    branches.IntersectWith(await GitHelper.GetBranchesAsync(repository));
+            }
+
+            Branches.Clear();
+
+            if (branches is null)
+                return;
+
+            foreach(var branch in branches.OrderBy(b => b))
+            {
+                Branches.Add(branch);
+            }
+
+            if (previousBranch != null && Branches.Contains(previousBranch))
+                Branch = previousBranch;
+            else
+                Branch = null;
+        }
+
+        private async Task SearchAsync(CancellationToken token)
         {
             Results.Clear();
-            SearchedRepository = null;
+            CurrentRepository = null;
 
-            cts_.Dispose();
-            cts_ = new CancellationTokenSource();
+            foreach (var repository in settings_.GetValidatedGitRepositories())
+            {
+                CurrentRepository = repository;
+
+                await foreach (var result in GitHelper.SearchAsync(Search, repository, Branch, token))
+                {
+                    Results.Add(result);
+                }
+
+                if (token.IsCancellationRequested)
+                    break;
+            }
+
+            if (settings_.LastBranch != branch_)
+            {
+                settings_.LastBranch = branch_;
+                await settings_.SaveAsync(Settings.DefaultPath);
+            }
+
+            CurrentRepository = null;
+        }
+
+        private async Task FetchAllAsync(CancellationToken token)
+        {
+            CurrentRepository = null;
 
             if (settings_.GitRepositores == null)
                 return;
 
             foreach (var repository in settings_.GitRepositores)
             {
-                SearchedRepository = repository;
+                CurrentRepository = repository;
 
-                if (!Directory.Exists(repository) || !Directory.Exists(Path.Combine(repository, ".git")))
+                if (!GitHelper.IsRepository(repository))
                     continue;
 
-                await foreach (var result in GitHelper.SearchAsync(Search, repository, cts_.Token))
-                {
-                    Results.Add(result);
-                }
+                await GitHelper.FetchAsync(repository);
 
-                if (cts_.IsCancellationRequested)
+                if (token.IsCancellationRequested)
                     break;
             }
 
-            SearchedRepository = null;
+            CurrentRepository = null;
         }
     }
 }
