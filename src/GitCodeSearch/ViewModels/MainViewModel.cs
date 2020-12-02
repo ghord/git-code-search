@@ -33,7 +33,7 @@ namespace GitCodeSearch.ViewModels
             this.owner_ = owner;
         }
 
-        public ObservableCollection<string> Branches { get; } = new ObservableCollection<string>();
+        public ObservableCollection<string?> Branches { get; } = new ObservableCollection<string?> { null };
    
        
         public string Search
@@ -94,6 +94,8 @@ namespace GitCodeSearch.ViewModels
 
             if (branches is null)
                 return;
+
+            Branches.Add(null);
 
             foreach(var branch in branches.OrderBy(b => b))
             {
