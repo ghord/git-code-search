@@ -40,25 +40,16 @@
                     ToolTip="Fetch All" FontFamily="Segoe UI Symbol" Padding="5,2" />
         </DockPanel>
 
-        <!--<Border Grid.Row="1" Margin="2"
-                Grid.ColumnSpan="2" 
-                BorderBrush="{StaticResource {x:Static SystemColors.ActiveBorderBrushKey}}" 
-                BorderThickness="1" 
-                Background="{StaticResource {x:Static SystemColors.InfoBrushKey}}" >
-            <TextBlock VerticalAlignment="Center" Margin="5,2">
-                <Run Text="Searching " />
-                <Run Text="{Binding Repository, Mode=OneWay}" />
-                <Run Text="..." />
-                <InlineUIContainer BaselineAlignment="Center">
-                    <Button Content="Cancel" Padding="5,1" MinWidth="75" Margin="5,0"></Button>
-                </InlineUIContainer>
-            </TextBlock>
-        </Border>-->
 
         <ListBox Grid.Row="2" Margin="8" Padding="0" ItemsSource="{Binding Results}" ScrollViewer.VerticalScrollBarVisibility="Visible" FontFamily="Consolas">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <EventSetter Event="MouseDoubleClick" Handler="ListBoxItem_MouseDoubleClick" />
+                </Style>
+            </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock>
+                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
                         <Run Text="{Binding Path, Mode=OneWay}" FontWeight="Bold" />
                         <Run Text="{Binding Text, Mode=OneWay}" />
                     </TextBlock>

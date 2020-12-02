@@ -29,13 +29,31 @@ namespace GitCodeSearch.ViewModels
             SearchCommand = new RelayCommand(SearchAsync);
             SettingsCommand = new RelayCommand(SettingsAsync);
             FetchAllCommand = new RelayCommand(FetchAllAsync);
+            ShowPreviewCommand = new RelayCommand<SearchResult>(ShowPreviewAsync);
             branch_ = settings.LastBranch;
             this.owner_ = owner;
         }
 
+        private async Task ShowPreviewAsync(SearchResult searchResult)
+        {
+            var content = await GitHelper.GetFileContentAsync(searchResult.Query.RepositoryPath, searchResult.Path, searchResult.Query.Branch);
+
+            if (content != null)
+            {
+                var viewModel = new PreviewViewModel(searchResult, content);
+                var view = new PreviewView { DataContext = viewModel };
+                view.Loaded += (o, e) =>
+                    {
+
+                        view.ScrollToSearchResult(searchResult);
+                    };
+                DialogHelper.ShowDialog(view, searchResult.Path, owner_);
+            }
+        }
+
         public ObservableCollection<string?> Branches { get; } = new ObservableCollection<string?> { null };
-   
-       
+
+
         public string Search
         {
             get { return search_; }
@@ -57,6 +75,7 @@ namespace GitCodeSearch.ViewModels
         public ICommand SearchCommand { get; }
         public ICommand SettingsCommand { get; }
         public ICommand FetchAllCommand { get; }
+        public ICommand ShowPreviewCommand { get; }
 
         public ObservableCollection<SearchResult> Results { get; } = new ObservableCollection<SearchResult>();
 
@@ -82,7 +101,7 @@ namespace GitCodeSearch.ViewModels
 
             HashSet<string>? branches = null;
 
-            foreach(var repository in settings_.GetValidatedGitRepositories())
+            foreach (var repository in settings_.GetValidatedGitRepositories())
             {
                 if (branches is null)
                     branches = new HashSet<string>(await GitHelper.GetBranchesAsync(repository));
@@ -97,7 +116,7 @@ namespace GitCodeSearch.ViewModels
 
             Branches.Add(null);
 
-            foreach(var branch in branches.OrderBy(b => b))
+            foreach (var branch in branches.OrderBy(b => b))
             {
                 Branches.Add(branch);
             }
