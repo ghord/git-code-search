@@ -91,4 +91,93 @@ namespace GitCodeSearch.ViewModels
             }
         }
     }
+
+    public class RelayCommand<T> : ICommand, INotifyPropertyChanged
+    {
+        private Func<T, CancellationToken, Task> action_;
+        private bool running_;
+        private CancellationTokenSource cts_ = new CancellationTokenSource();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public RelayCommand(Action<T> action)
+        {
+            action_ = (param, _) =>
+            {
+                action(param);
+                return Task.CompletedTask;
+            };
+        }
+
+        public RelayCommand(Action<CancellationToken> action)
+        {
+            action_ = (param, token) =>
+            {
+                action(token);
+                if (token.IsCancellationRequested)
+                    return Task.FromCanceled(token);
+                else
+                    return Task.CompletedTask;
+            };
+            CancelCommand = new RelayCommand(Cancel);
+        }
+
+        public RelayCommand(Func<T, Task> action)
+        {
+            action_ = (param, _) => action(param);
+        }
+
+        public RelayCommand(Func<T, CancellationToken, Task> action)
+        {
+            action_ = action;
+            CancelCommand = new RelayCommand(Cancel);
+        }
+
+        private void Cancel()
+        {
+            cts_.Cancel();
+
+        }
+
+        public event EventHandler? CanExecuteChanged
+        {
+            add { CommandManager.RequerySuggested += value; }
+            remove { CommandManager.RequerySuggested -= value; }
+        }
+
+        public bool IsRunning => running_;
+
+        public bool CanExecute(object? parameter)
+        {
+            if (parameter is not T)
+                return false;
+
+            return !running_;
+        }
+
+        public ICommand? CancelCommand { get; }
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is not T value)
+                return;
+
+            running_ = true;
+            cts_.Dispose();
+            cts_ = new CancellationTokenSource();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+            CommandManager.InvalidateRequerySuggested();
+
+            try
+            {
+                action_(value, cts_.Token).WaitAndDispatch();
+            }
+            finally
+            {
+                running_ = false;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
 }

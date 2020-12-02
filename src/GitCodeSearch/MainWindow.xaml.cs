@@ -36,5 +36,12 @@ namespace GitCodeSearch
             await viewModel.UpdateBranchesAsync();
             this.DataContext = viewModel;
         }
+
+        private  void ListBoxItem_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        { 
+            var lbi = (ListBoxItem)sender;
+            var viewModel = (MainViewModel)DataContext;
+            viewModel.ShowPreviewCommand.Execute(lbi.DataContext);
+        }
     }
 }
