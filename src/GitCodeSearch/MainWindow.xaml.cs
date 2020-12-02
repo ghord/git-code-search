@@ -31,10 +31,10 @@ namespace GitCodeSearch
 
         public async Task LoadDataContextAsync()
         {
-
             var settings = await Settings.LoadAsync(Settings.DefaultPath) ?? new Settings();
-
-            this.DataContext = new MainViewModel(this, settings);
+            var viewModel = new MainViewModel(this, settings);
+            await viewModel.UpdateBranchesAsync();
+            this.DataContext = viewModel;
         }
     }
 }

@@ -13,6 +13,8 @@ namespace GitCodeSearch.Model
     {
         public string[]? GitRepositores { get; set; }
 
+        public string? LastBranch { get; set; }
+
         public static string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
 
         public async Task SaveAsync(string path)
@@ -34,6 +36,14 @@ namespace GitCodeSearch.Model
             {
                 return null;
             }
+        }
+
+        public string[] GetValidatedGitRepositories()
+        {
+            if (GitRepositores == null)
+                return Array.Empty<string>();
+
+            return GitRepositores.Where(GitHelper.IsRepository).ToArray();
         }
     }
 }
