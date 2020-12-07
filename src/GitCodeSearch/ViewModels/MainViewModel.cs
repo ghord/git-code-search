@@ -3,6 +3,7 @@ using GitCodeSearch.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
@@ -22,6 +23,8 @@ namespace GitCodeSearch.ViewModels
         private Settings settings_;
         private string? currentRepository_;
         private string? branch_;
+        private bool isCaseSensitive_ = false;
+        private string pattern_;
 
         public MainViewModel(Window owner, Settings settings)
         {
@@ -30,8 +33,38 @@ namespace GitCodeSearch.ViewModels
             SettingsCommand = new RelayCommand(SettingsAsync);
             FetchAllCommand = new RelayCommand(FetchAllAsync);
             ShowPreviewCommand = new RelayCommand<SearchResult>(ShowPreviewAsync);
+            OpenFileCommand = new RelayCommand<SearchResult>(OpenFile);
+            RevealInExplorerCommand = new RelayCommand<SearchResult>(RevealInExplorer);
+            CopyPathCommand = new RelayCommand<SearchResult>(CopyPath);
             branch_ = settings.LastBranch;
+            pattern_ = "*.*";
             this.owner_ = owner;
+        }
+
+        private void CopyPath(SearchResult searchResult)
+        {
+            Clipboard.SetText(new Uri(searchResult.FullPath).LocalPath);
+        }
+
+        private void OpenFile(SearchResult searchResult)
+        {
+            Process.Start(searchResult.FullPath);
+        }
+
+        private void RevealInExplorer(SearchResult searchResult)
+        {
+            var filePath = searchResult.FullPath;
+
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show($"File {filePath} does not exist");
+                return;
+            }
+
+            if(Path.GetDirectoryName(filePath) is string directory && Path.GetFileName(filePath) is string fileName)
+            {
+                ExplorerHelper.OpenFolderAndSelectItem(directory, fileName);
+            }
         }
 
         private async Task ShowPreviewAsync(SearchResult searchResult)
@@ -66,17 +99,35 @@ namespace GitCodeSearch.ViewModels
             set { SetField(ref currentRepository_, value); }
         }
 
+
+        public bool IsCaseSensitive
+        {
+            get { return isCaseSensitive_; }
+            set { SetField(ref isCaseSensitive_, value); }
+        }
+
+
         public string? Branch
         {
             get { return branch_; }
             set { SetField(ref branch_, value); }
         }
 
+
+        public string Pattern
+        {
+            get { return pattern_; }
+            set { SetField(ref pattern_, value); }
+        }
+
+
         public ICommand SearchCommand { get; }
         public ICommand SettingsCommand { get; }
         public ICommand FetchAllCommand { get; }
         public ICommand ShowPreviewCommand { get; }
-
+        public ICommand RevealInExplorerCommand { get; }
+        public ICommand CopyPathCommand { get; }
+        public ICommand OpenFileCommand { get; }
         public ObservableCollection<SearchResult> Results { get; } = new ObservableCollection<SearchResult>();
 
         private async Task SettingsAsync()
@@ -106,7 +157,11 @@ namespace GitCodeSearch.ViewModels
                 if (branches is null)
                     branches = new HashSet<string>(await GitHelper.GetBranchesAsync(repository));
                 else
-                    branches.IntersectWith(await GitHelper.GetBranchesAsync(repository));
+                {
+                    var newBranches = await GitHelper.GetBranchesAsync(repository);
+
+                    branches.IntersectWith(newBranches);
+                }
             }
 
             Branches.Clear();
@@ -136,7 +191,9 @@ namespace GitCodeSearch.ViewModels
             {
                 CurrentRepository = repository;
 
-                await foreach (var result in GitHelper.SearchAsync(Search, repository, Branch, token))
+                var query = new SearchQuery(Search, repository, Branch, Pattern, IsCaseSensitive);
+
+                await foreach (var result in GitHelper.SearchAsync(query, token))
                 {
                     Results.Add(result);
                 }

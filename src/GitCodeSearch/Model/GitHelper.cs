@@ -9,6 +9,7 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Markup;
 
 namespace GitCodeSearch.Model
 {
@@ -18,19 +19,23 @@ namespace GitCodeSearch.Model
         public string Expression { get; }
         public string Repository { get; }
         public string RepositoryPath { get; }
+        public string Pattern { get; }
 
-        public SearchQuery(string expression, string repository, string repositoryPath, string? branch)
+        public bool IsCaseSensitive { get; }
+        public SearchQuery(string expression, string repositoryPath, string? branch, string pattern, bool isCaseSensitive)
         {
             Expression = expression;
-            Repository = repository;
+            Repository = Path.GetFileName(Path.GetDirectoryName(repositoryPath)) ?? string.Empty;
             Branch = branch;
             RepositoryPath = repositoryPath;
+            Pattern = pattern;
+            IsCaseSensitive = isCaseSensitive;
         }
     }
 
     public class SearchResult
     {
-        public SearchResult(SearchQuery query, string path, int line, int column, string text)
+        public SearchResult(SearchQuery query,  string path, int line, int column, string text)
         {
             Text = text;
             Path = path;
@@ -45,24 +50,32 @@ namespace GitCodeSearch.Model
         public int Column { get; }
         public SearchQuery Query { get; }
 
+        public string FullPath => System.IO.Path.Combine(Query.RepositoryPath, Path);
     }
 
 
     public static class GitHelper
     {
-        public static async IAsyncEnumerable<SearchResult> SearchAsync(string query, string repositoryPath, string? branch = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public static async IAsyncEnumerable<SearchResult> SearchAsync(SearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var psi = new ProcessStartInfo("git");
-            psi.WorkingDirectory = repositoryPath;
+            psi.WorkingDirectory = searchQuery.RepositoryPath;
             psi.ArgumentList.Add("grep");
             psi.ArgumentList.Add("-F");
             psi.ArgumentList.Add("--no-color");
             psi.ArgumentList.Add("--line-number");
             psi.ArgumentList.Add("--column");
-            psi.ArgumentList.Add(query);
 
-            if (branch != null)
-                psi.ArgumentList.Add(branch);
+            if (!searchQuery.IsCaseSensitive)
+                psi.ArgumentList.Add("--ignore-case");
+
+            psi.ArgumentList.Add(searchQuery.Expression);
+
+            if (searchQuery.Branch != null)
+                psi.ArgumentList.Add(searchQuery.Branch);
+
+            psi.ArgumentList.Add("--");
+            psi.ArgumentList.Add(searchQuery.Pattern);
 
             psi.RedirectStandardOutput = true;
             psi.CreateNoWindow = true;
@@ -74,8 +87,6 @@ namespace GitCodeSearch.Model
 
             var reader = process.StandardOutput;
 
-            var repository = Path.GetFileName(Path.GetDirectoryName(repositoryPath)) ?? string.Empty;
-            var searchQuery = new SearchQuery(query, repository, repositoryPath, branch);
 
             while (await reader.ReadLineAsync() is string line)
             {

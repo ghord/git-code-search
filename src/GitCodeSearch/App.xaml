@@ -4,6 +4,7 @@
              xmlns:local="clr-namespace:GitCodeSearch"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <PopupAnimation x:Key="{x:Static SystemParameters.MenuPopupAnimationKey}">None</PopupAnimation>
+
     </Application.Resources>
 </Application>
