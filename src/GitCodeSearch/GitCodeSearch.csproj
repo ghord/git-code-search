@@ -6,6 +6,7 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ApplicationIcon>GitCodeSearch.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

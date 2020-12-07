@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:GitCodeSearch" 
         xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
         WindowStartupLocation="CenterScreen"
-        mc:Ignorable="d"
+        mc:Ignorable="d" x:Name="Root"
         Title="Git Code Search" Height="768" Width="1024">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -33,7 +33,9 @@
             <TextBox Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
         </DockPanel>
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
-            <CheckBox Margin="2" VerticalAlignment="Center" Content="Case sensitive" />
+            <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
+            <TextBlock VerticalAlignment="Center" Margin="50,0,5,0">Files:</TextBlock>
+            <TextBox MinWidth="100" Padding="2" VerticalAlignment="Center" Text="{Binding Pattern, Mode=TwoWay}"></TextBox>
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" 
                     ToolTip="Settings" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding FetchAllCommand}" Content=""
@@ -45,6 +47,25 @@
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <EventSetter Event="MouseDoubleClick" Handler="ListBoxItem_MouseDoubleClick" />
+                    <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="Preview" FontWeight="Bold" 
+                                          Command="{Binding Tag.ShowPreviewCommand}" 
+                                          CommandParameter="{Binding DataContext}"/>
+                                <MenuItem Header="Open file"
+                                          Command="{Binding Tag.OpenFileCommand}" 
+                                          CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Copy path"
+                                          Command="{Binding Tag.CopyPathCommand}" 
+                                          CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Reveal in explorer"
+                                          Command="{Binding Tag.RevealInExplorerCommand}" 
+                                          CommandParameter="{Binding DataContext}" />
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
