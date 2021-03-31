@@ -9,7 +9,7 @@ namespace GitCodeSearch.ViewModels
 {
     public class PreviewViewModel : ViewModelBase
     {
-        public PreviewViewModel(SearchResult searchResult, string content)
+        public PreviewViewModel(FileContentSearchResult searchResult, string content)
         {
             Content = content;
         }
