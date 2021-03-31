@@ -27,7 +27,7 @@ namespace GitCodeSearch.Views
             InitializeComponent();
         }
 
-        public void ScrollToSearchResult(SearchResult searchResult)
+        public void ScrollToSearchResult(FileContentSearchResult searchResult)
         {
             ContentTextBox.ScrollToLine(searchResult.Line);
             var index = LineCounter.GetCharacterIndex(ContentTextBox.Text, searchResult.Line, searchResult.Column);

@@ -16,6 +16,12 @@ using System.Windows.Input;
 
 namespace GitCodeSearch.ViewModels
 {
+    public enum SearchType
+    {
+        FileContent = 0,
+        CommitMessage = 1
+    }
+
     public class MainViewModel : ViewModelBase
     {
         private string search_ = string.Empty;
@@ -24,6 +30,7 @@ namespace GitCodeSearch.ViewModels
         private string? currentRepository_;
         private string? branch_;
         private bool isCaseSensitive_ = false;
+        private SearchType searchType_;
         private string pattern_;
 
         public MainViewModel(Window owner, Settings settings)
@@ -32,26 +39,48 @@ namespace GitCodeSearch.ViewModels
             SearchCommand = new RelayCommand(SearchAsync);
             SettingsCommand = new RelayCommand(SettingsAsync);
             FetchAllCommand = new RelayCommand(FetchAllAsync);
-            ShowPreviewCommand = new RelayCommand<SearchResult>(ShowPreviewAsync);
-            OpenFileCommand = new RelayCommand<SearchResult>(OpenFile);
-            RevealInExplorerCommand = new RelayCommand<SearchResult>(RevealInExplorer);
-            CopyPathCommand = new RelayCommand<SearchResult>(CopyPath);
+            ShowPreviewCommand = new RelayCommand<FileContentSearchResult>(ShowPreviewAsync);
+            OpenFileCommand = new RelayCommand<FileContentSearchResult>(OpenFile);
+            RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
+            CopyPathCommand = new RelayCommand<FileContentSearchResult>(CopyPath);
+            CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
             branch_ = settings.LastBranch;
-            pattern_ = "*.*";
+            pattern_ = "*";
             this.owner_ = owner;
         }
 
-        private void CopyPath(SearchResult searchResult)
+        private void CopyHash(CommitMessageSearchResult searchResult)
         {
-            Clipboard.SetText(new Uri(searchResult.FullPath).LocalPath);
+            Clipboard.SetText(searchResult.Hash);
+
         }
 
-        private void OpenFile(SearchResult searchResult)
+        private void CopyPath(FileContentSearchResult searchResult)
         {
-            Process.Start(searchResult.FullPath);
+            try
+            {
+                Clipboard.SetText(new Uri(searchResult.FullPath).LocalPath);
+            }
+            catch(Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+
         }
 
-        private void RevealInExplorer(SearchResult searchResult)
+        private void OpenFile(FileContentSearchResult searchResult)
+        {
+            try
+            {
+                Process.Start(searchResult.FullPath);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+        }
+
+        private void RevealInExplorer(FileContentSearchResult searchResult)
         {
             var filePath = searchResult.FullPath;
 
@@ -61,13 +90,13 @@ namespace GitCodeSearch.ViewModels
                 return;
             }
 
-            if(Path.GetDirectoryName(filePath) is string directory && Path.GetFileName(filePath) is string fileName)
+            if (Path.GetDirectoryName(filePath) is string directory && Path.GetFileName(filePath) is string fileName)
             {
                 ExplorerHelper.OpenFolderAndSelectItem(directory, fileName);
             }
         }
 
-        private async Task ShowPreviewAsync(SearchResult searchResult)
+        private async Task ShowPreviewAsync(FileContentSearchResult searchResult)
         {
             var content = await GitHelper.GetFileContentAsync(searchResult.Query.RepositoryPath, searchResult.Path, searchResult.Query.Branch);
 
@@ -114,6 +143,12 @@ namespace GitCodeSearch.ViewModels
         }
 
 
+        public SearchType SearchType
+        {
+            get { return searchType_; }
+            set { SetField(ref searchType_, value); }
+        }
+
         public string Pattern
         {
             get { return pattern_; }
@@ -127,8 +162,10 @@ namespace GitCodeSearch.ViewModels
         public ICommand ShowPreviewCommand { get; }
         public ICommand RevealInExplorerCommand { get; }
         public ICommand CopyPathCommand { get; }
+
+        public ICommand CopyHashCommand { get; }
         public ICommand OpenFileCommand { get; }
-        public ObservableCollection<SearchResult> Results { get; } = new ObservableCollection<SearchResult>();
+        public ObservableCollection<ISearchResult> Results { get; } = new ObservableCollection<ISearchResult>();
 
         private async Task SettingsAsync()
         {
@@ -191,15 +228,36 @@ namespace GitCodeSearch.ViewModels
             {
                 CurrentRepository = repository;
 
-                var query = new SearchQuery(Search, repository, Branch, Pattern, IsCaseSensitive);
-
-                await foreach (var result in GitHelper.SearchAsync(query, token))
+                switch (searchType_)
                 {
-                    Results.Add(result);
+                    case SearchType.FileContent:
+                        {
+                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive);
+
+                            await foreach (var result in GitHelper.SearchFileContentAsync(query, token))
+                            {
+                                Results.Add(result);
+                            }
+
+                            if (token.IsCancellationRequested)
+                                break;
+                            break;
+                        }
+                    case SearchType.CommitMessage:
+                        {
+                            var query = new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive);
+
+                            await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token))
+                            {
+                                Results.Add(result);
+                            }
+
+                            if (token.IsCancellationRequested)
+                                break;
+                            break;
+                        }
                 }
 
-                if (token.IsCancellationRequested)
-                    break;
             }
 
             if (settings_.LastBranch != branch_)

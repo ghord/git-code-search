@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GitCodeSearch" 
+        xmlns:vm="clr-namespace:GitCodeSearch.ViewModels"
+        xmlns:views="clr-namespace:GitCodeSearch.Views"
         xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d" x:Name="Root"
@@ -12,6 +14,29 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:NullReplaceConverter x:Key="NullReplaceConverter" />
         <converters:EnumerableNullReplaceConverter x:Key="EnumerableNullReplaceConverter"/>
+        <converters:EnumConverter EnumType="{x:Type vm:SearchType}" x:Key="SearchTypeConverter" />
+        <views:SearchResultTemplateSelector x:Key="SearchResultTemplateSelector">
+            <views:SearchResultTemplateSelector.FileContentTemplate>
+                <DataTemplate>
+                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
+                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
+                        <Hyperlink ToolTip="{Binding Path}" ToolTipService.ShowDuration="60000">
+                            <Run Text="{Binding ShortPath, Mode=OneWay}"  />
+                        </Hyperlink>
+                        <Run Text="{Binding Text, Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchResultTemplateSelector.FileContentTemplate>
+            <views:SearchResultTemplateSelector.CommitMessageTemplate>
+                <DataTemplate>
+                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
+                        <Run Text="{Binding Hash, Mode=OneWay}" />
+                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
+                        <Run Text="{Binding Message, Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchResultTemplateSelector.CommitMessageTemplate>
+        </views:SearchResultTemplateSelector>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -34,8 +59,15 @@
         </DockPanel>
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
-            <TextBlock VerticalAlignment="Center" Margin="50,0,5,0">Files:</TextBlock>
-            <TextBox MinWidth="100" Padding="2" VerticalAlignment="Center" Text="{Binding Pattern, Mode=TwoWay}"></TextBox>
+            <TextBlock Margin="12,0,6,0" VerticalAlignment="Center">Search type:</TextBlock>
+            <ComboBox Margin="2" VerticalAlignment="Center" MinWidth="150" SelectedIndex="{Binding SearchType, Mode=TwoWay, Converter={StaticResource SearchTypeConverter}}">
+                <ComboBoxItem>File content</ComboBoxItem>
+                <ComboBoxItem>Commit messages</ComboBoxItem>
+            </ComboBox>
+
+            <TextBlock VerticalAlignment="Center" Margin="50,0,5,0">File filter:</TextBlock>
+
+            <TextBox MinWidth="100" Padding="2" VerticalAlignment="Center" Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"></TextBox>
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" 
                     ToolTip="Settings" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding FetchAllCommand}" Content=""
@@ -43,7 +75,9 @@
         </DockPanel>
 
 
-        <ListBox Grid.Row="2" Margin="8" Padding="0" ItemsSource="{Binding Results}" ScrollViewer.VerticalScrollBarVisibility="Visible" FontFamily="Consolas">
+        <ListBox Grid.Row="2" Margin="8" Padding="0" 
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 ItemsSource="{Binding Results}" ScrollViewer.VerticalScrollBarVisibility="Visible" FontFamily="Consolas" ItemTemplateSelector="{StaticResource SearchResultTemplateSelector}">
             <ListBox.ItemContainerStyle>
                 <Style TargetType="ListBoxItem">
                     <EventSetter Event="MouseDoubleClick" Handler="ListBoxItem_MouseDoubleClick" />
@@ -63,19 +97,16 @@
                                 <MenuItem Header="Reveal in explorer"
                                           Command="{Binding Tag.RevealInExplorerCommand}" 
                                           CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Copy hash"
+                                          Command="{Binding Tag.CopyHashCommand}"
+                                          CommandParameter="{Binding DataContext}" />
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
                 </Style>
             </ListBox.ItemContainerStyle>
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
-                        <Run Text="{Binding Path, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Text, Mode=OneWay}" />
-                    </TextBlock>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
+
+
         </ListBox>
 
         <StatusBar Grid.Row="3" Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}" BorderThickness="0,1,0,0" BorderBrush="{StaticResource {x:Static SystemColors.ActiveBorderBrushKey}}">
@@ -88,22 +119,25 @@
             <Separator />
             <StatusBarItem Margin="5,2" Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock>
-                    <Run Text="Searching" />
-                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
-                    <Run Text="..." />
+                    <Run Text="Searching (" />
                     <Hyperlink Command="{Binding SearchCommand.CancelCommand}">
                         <Run Text="Cancel" />
                     </Hyperlink>
+                    <Run Text=")" />
+                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
+                    <Run Text=" ..." />
                 </TextBlock>
             </StatusBarItem>
             <StatusBarItem Margin="5,2" Visibility="{Binding FetchAllCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+
                 <TextBlock>
-                    <Run Text="Fetching" />
-                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
-                    <Run Text="..." />
+                    <Run Text="Fetching (" />
                     <Hyperlink Command="{Binding FetchAllCommand.CancelCommand}">
                         <Run Text="Cancel" />
                     </Hyperlink>
+                    <Run Text=")" />
+                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
+                    <Run Text=" ..." />
                 </TextBlock>
             </StatusBarItem>
 
