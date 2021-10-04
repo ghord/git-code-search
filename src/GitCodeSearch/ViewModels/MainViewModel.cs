@@ -1,5 +1,6 @@
 ﻿using GitCodeSearch.Model;
 using GitCodeSearch.Views;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -44,9 +45,30 @@ namespace GitCodeSearch.ViewModels
             RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
             CopyPathCommand = new RelayCommand<FileContentSearchResult>(CopyPath);
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
+            SaveResultsCommand = new RelayCommand(SaveResults);
             branch_ = settings.LastBranch;
             pattern_ = "*";
             this.owner_ = owner;
+        }
+
+        private void SaveResults()
+        {
+            var dialog = new SaveFileDialog();
+
+            dialog.Filter = "Text file|*.txt";
+            try
+            {
+
+                if (dialog.ShowDialog(Application.Current.MainWindow) == true)
+                {
+                    File.WriteAllLines(dialog.FileName, Results.Select(r => r.GetText()));
+                }
+            }
+
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
         }
 
         private void CopyHash(CommitMessageSearchResult searchResult)
@@ -61,7 +83,7 @@ namespace GitCodeSearch.ViewModels
             {
                 Clipboard.SetText(new Uri(searchResult.FullPath).LocalPath);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Debug.WriteLine(e);
             }
@@ -162,7 +184,7 @@ namespace GitCodeSearch.ViewModels
         public ICommand ShowPreviewCommand { get; }
         public ICommand RevealInExplorerCommand { get; }
         public ICommand CopyPathCommand { get; }
-
+        public ICommand SaveResultsCommand { get; }
         public ICommand CopyHashCommand { get; }
         public ICommand OpenFileCommand { get; }
         public ObservableCollection<ISearchResult> Results { get; } = new ObservableCollection<ISearchResult>();
@@ -187,30 +209,33 @@ namespace GitCodeSearch.ViewModels
         {
             var previousBranch = Branch;
 
-            HashSet<string>? branches = null;
+            Dictionary<string, int> branchStats = new Dictionary<string, int>();
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
-                if (branches is null)
-                    branches = new HashSet<string>(await GitHelper.GetBranchesAsync(repository));
-                else
-                {
-                    var newBranches = await GitHelper.GetBranchesAsync(repository);
+                var branches = await GitHelper.GetBranchesAsync(repository);
 
-                    branches.IntersectWith(newBranches);
+                foreach(var branch in branches)
+                {
+                    if(branchStats.TryGetValue(branch, out int count))
+                    {
+                        branchStats[branch] = ++count;
+                    }
+                    else
+                    {
+                        branchStats[branch] = 1;
+                    }
                 }
             }
 
             Branches.Clear();
 
-            if (branches is null)
-                return;
 
             Branches.Add(null);
 
-            foreach (var branch in branches.OrderBy(b => b))
+            foreach (var branch in branchStats.OrderByDescending(b => b.Value).ThenBy(b => b.Key))
             {
-                Branches.Add(branch);
+                Branches.Add(branch.Key);
             }
 
             if (previousBranch != null && Branches.Contains(previousBranch))
