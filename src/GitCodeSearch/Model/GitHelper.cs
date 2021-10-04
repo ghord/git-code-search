@@ -28,20 +28,34 @@ namespace GitCodeSearch.Model
     public interface ISearchResult
     {
         SearchQuery Query { get; }
+        string GetText();
     }
 
     public abstract record SearchResult<TSearchQuery>(TSearchQuery Query) : ISearchResult where TSearchQuery : SearchQuery
     {
         SearchQuery ISearchResult.Query => Query;
+
+        public abstract string GetText();
     }
 
     public record FileContentSearchResult(string Text, string Path, int Line, int Column, FileContentSearchQuery Query) : SearchResult<FileContentSearchQuery>(Query)
     {
         public string ShortPath { get; } = System.IO.Path.GetFileName(Path);
         public string FullPath => System.IO.Path.Combine(Query.RepositoryPath, Path);
+
+        public override string GetText()
+        {
+            return $"\"{FullPath}\":{Line}:{Column} {Text}";
+        }
     }
 
-    public record CommitMessageSearchResult(string Message, string Hash, string Author, DateTime DateTime, CommitMessageSearchQuery Query) : SearchResult<CommitMessageSearchQuery>(Query);
+    public record CommitMessageSearchResult(string Message, string Hash, string Author, DateTime DateTime, CommitMessageSearchQuery Query) : SearchResult<CommitMessageSearchQuery>(Query)
+    {
+        public override string GetText()
+        {
+            return Hash + " " + Message;
+        }
+    }
 
     public static class GitHelper
     {

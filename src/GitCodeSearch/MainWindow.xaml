@@ -68,10 +68,13 @@
             <TextBlock VerticalAlignment="Center" Margin="50,0,5,0">File filter:</TextBlock>
 
             <TextBox MinWidth="100" Padding="2" VerticalAlignment="Center" Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"></TextBox>
+            <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SaveResultsCommand}" Content=""
+                    ToolTip="Save results" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" 
                     ToolTip="Settings" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding FetchAllCommand}" Content=""
                     ToolTip="Fetch All" FontFamily="Segoe UI Symbol" Padding="5,2" />
+            
         </DockPanel>
 
 
