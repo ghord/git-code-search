@@ -38,7 +38,7 @@
             </views:SearchResultTemplateSelector.CommitMessageTemplate>
         </views:SearchResultTemplateSelector>
     </Window.Resources>
-    <Grid>
+    <Grid FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
         <Grid.RowDefinitions>
             <RowDefinition  Height="Auto" />
             <RowDefinition  Height="Auto" />
@@ -55,7 +55,7 @@
                       SelectedValue="{Binding Branch, Mode=TwoWay, Converter={StaticResource NullReplaceConverter}, ConverterParameter='(local)'}" />
 
 
-            <TextBox Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
+            <TextBox x:Name="SearchBox" Margin="2" Padding="2" VerticalContentAlignment="Center" Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TabIndex="0"/>
         </DockPanel>
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
