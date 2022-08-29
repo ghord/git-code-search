@@ -9,7 +9,8 @@
         xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d" x:Name="Root"
-        Title="Git Code Search" Height="768" Width="1024">
+        Title="Git Code Search" Height="768" Width="1024"
+        Closed="Window_Closed">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:NullReplaceConverter x:Key="NullReplaceConverter" />
@@ -59,6 +60,7 @@
         </DockPanel>
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
+            <CheckBox Margin="2" IsChecked="{Binding IsRegex, Mode=TwoWay}" VerticalAlignment="Center" Content="Regex" />
             <TextBlock Margin="12,0,6,0" VerticalAlignment="Center">Search type:</TextBlock>
             <ComboBox Margin="2" VerticalAlignment="Center" MinWidth="150" SelectedIndex="{Binding SearchType, Mode=TwoWay, Converter={StaticResource SearchTypeConverter}}">
                 <ComboBoxItem>File content</ComboBoxItem>

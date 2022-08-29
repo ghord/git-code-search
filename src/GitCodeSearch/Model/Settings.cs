@@ -45,5 +45,9 @@ namespace GitCodeSearch.Model
 
             return GitRepositores.Where(GitHelper.IsRepository).ToArray();
         }
+
+        public bool IsCaseSensitive { get; set; }
+
+        public bool IsRegex { get; set; }
     }
 }
