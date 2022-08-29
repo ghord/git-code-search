@@ -31,6 +31,7 @@ namespace GitCodeSearch.ViewModels
         private string? currentRepository_;
         private string? branch_;
         private bool isCaseSensitive_ = false;
+        private bool isRegex_ = false;
         private SearchType searchType_;
         private string pattern_;
 
@@ -47,6 +48,8 @@ namespace GitCodeSearch.ViewModels
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
             SaveResultsCommand = new RelayCommand(SaveResults);
             branch_ = settings.LastBranch;
+            isCaseSensitive_ = settings.IsCaseSensitive;
+            isRegex_ = settings.IsRegex;
             pattern_ = "*";
             this.owner_ = owner;
         }
@@ -69,6 +72,11 @@ namespace GitCodeSearch.ViewModels
             {
                 MessageBox.Show(e.ToString());
             }
+        }
+
+        public async Task SaveSettingsAsync()
+        {
+            await settings_.SaveAsync(Settings.DefaultPath);
         }
 
         private void CopyHash(CommitMessageSearchResult searchResult)
@@ -154,9 +162,23 @@ namespace GitCodeSearch.ViewModels
         public bool IsCaseSensitive
         {
             get { return isCaseSensitive_; }
-            set { SetField(ref isCaseSensitive_, value); }
+            set
+            {
+                settings_.IsCaseSensitive = value;
+                SetField(ref isCaseSensitive_, value);
+            }
         }
 
+
+        public bool IsRegex
+        {
+            get { return isRegex_; }
+            set
+            {
+                settings_.IsRegex = value;
+                SetField(ref isRegex_, value);
+            }
+        }
 
         public string? Branch
         {
@@ -257,7 +279,7 @@ namespace GitCodeSearch.ViewModels
                 {
                     case SearchType.FileContent:
                         {
-                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive);
+                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive, IsRegex);
 
                             await foreach (var result in GitHelper.SearchFileContentAsync(query, token))
                             {
@@ -270,7 +292,7 @@ namespace GitCodeSearch.ViewModels
                         }
                     case SearchType.CommitMessage:
                         {
-                            var query = new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive);
+                            var query = new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive, IsRegex);
 
                             await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token))
                             {

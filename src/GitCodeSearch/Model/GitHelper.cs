@@ -14,16 +14,16 @@ using System.Windows.Markup;
 
 namespace GitCodeSearch.Model
 {
-    public abstract record SearchQuery(string? Branch, string RepositoryPath, bool IsCaseSensitive)
+    public abstract record SearchQuery(string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
     {
         public string Repository { get; } = Path.GetFileName(RepositoryPath) ?? string.Empty;
     }
 
-    public record FileContentSearchQuery(string Expression, string Pattern, string? Branch, string RepositoryPath, bool IsCaseSensitive)
-        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive);
+    public record FileContentSearchQuery(string Expression, string Pattern, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
+        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
 
-    public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive)
-        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive);
+    public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
+        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
 
     public interface ISearchResult
     {
@@ -64,6 +64,7 @@ namespace GitCodeSearch.Model
             var psi = new ProcessStartInfo("git");
             psi.WorkingDirectory = searchQuery.RepositoryPath;
             psi.ArgumentList.Add("log");
+            psi.ArgumentList.Add(searchQuery.GetRegexArgument());
             psi.ArgumentList.Add("--grep=" + searchQuery.Expression);
             psi.ArgumentList.Add("--pretty=format:%h%x09%an%x09%ad%x09%s");
             psi.ArgumentList.Add("--date=iso");
@@ -103,7 +104,7 @@ namespace GitCodeSearch.Model
             var psi = new ProcessStartInfo("git");
             psi.WorkingDirectory = searchQuery.RepositoryPath;
             psi.ArgumentList.Add("grep");
-            psi.ArgumentList.Add("-F");
+            psi.ArgumentList.Add(searchQuery.GetRegexArgument());
             psi.ArgumentList.Add("--no-color");
             psi.ArgumentList.Add("--line-number");
             psi.ArgumentList.Add("--column");
@@ -300,6 +301,14 @@ namespace GitCodeSearch.Model
             }
 
             return result.ToArray();
+        }
+
+        private static string GetRegexArgument(this SearchQuery searchQuery)
+        {
+            if (searchQuery.IsRegex)
+                return "--perl-regexp";
+            else
+                return "--fixed-strings";
         }
     }
 }
