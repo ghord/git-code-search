@@ -43,5 +43,11 @@ namespace GitCodeSearch
             var viewModel = (MainViewModel)DataContext;
             viewModel.ShowPreviewCommand.Execute(lbi.DataContext);
         }
+
+        private async void Window_Closed(object sender, EventArgs e)
+        {
+            var viewModel = (MainViewModel)DataContext;
+            await viewModel.SaveSettingsAsync();
+        }
     }
 }
