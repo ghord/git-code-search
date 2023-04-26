@@ -46,6 +46,7 @@ namespace GitCodeSearch.ViewModels
             RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
             CopyPathCommand = new RelayCommand<FileContentSearchResult>(CopyPath);
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
+            OpenSolutionCommand = new RelayCommand<FileContentSearchResult>(OpenSolution);
             SaveResultsCommand = new RelayCommand(SaveResults);
             branch_ = settings.LastBranch;
             isCaseSensitive_ = settings.IsCaseSensitive;
@@ -108,6 +109,23 @@ namespace GitCodeSearch.ViewModels
             {
                 Debug.WriteLine(e);
             }
+        }
+
+        private void OpenSolution(FileContentSearchResult searchResult)
+        {
+            var directory = Directory.GetParent(searchResult.FullPath);
+            while (directory != null)
+            {
+                var files = directory.GetFiles("*.sln");
+                if (files.Any())
+                {
+                    ExplorerHelper.OpenFileInDefaultProgram(files[0].FullName);
+                    return;
+                }
+                directory = directory.Parent;
+            }
+
+            MessageBox.Show($"There is no solution file in parent directories");
         }
 
         private void RevealInExplorer(FileContentSearchResult searchResult)
@@ -209,6 +227,7 @@ namespace GitCodeSearch.ViewModels
         public ICommand SaveResultsCommand { get; }
         public ICommand CopyHashCommand { get; }
         public ICommand OpenFileCommand { get; }
+        public ICommand OpenSolutionCommand { get; }
         public ObservableCollection<ISearchResult> Results { get; } = new ObservableCollection<ISearchResult>();
 
         private async Task SettingsAsync()
