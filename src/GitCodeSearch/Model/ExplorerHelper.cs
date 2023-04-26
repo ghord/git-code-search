@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -48,6 +49,21 @@ namespace GitCodeSearch.Model
             if (nativeFile != IntPtr.Zero)
             {
                 Marshal.FreeCoTaskMem(nativeFile);
+            }
+        }
+
+        public static void OpenFileInDefaultProgram(string filePath)
+        {
+            try
+            {
+                using Process explorerProcess = new();
+                explorerProcess.StartInfo.FileName = "explorer";
+                explorerProcess.StartInfo.Arguments = $"\"{filePath}\"";
+                explorerProcess.Start();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
             }
         }
     }

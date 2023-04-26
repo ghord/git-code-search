@@ -105,6 +105,10 @@
                                 <MenuItem Header="Copy hash"
                                           Command="{Binding Tag.CopyHashCommand}"
                                           CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Open solution"
+                                          ToolTip="Open solution containing file"
+                                          Command="{Binding Tag.OpenSolutionCommand}"
+                                          CommandParameter="{Binding DataContext}" />
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
