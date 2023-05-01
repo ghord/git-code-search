@@ -1,19 +1,12 @@
 ﻿using GitCodeSearch.Model;
-using GitCodeSearch.Utilities;
+using GitCodeSearch.ViewModels;
+using Microsoft.Web.WebView2.Core;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.IO;
 using System.Threading.Tasks;
+using System.Web;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace GitCodeSearch.Views
 {
@@ -25,17 +18,120 @@ namespace GitCodeSearch.Views
         public PreviewView()
         {
             InitializeComponent();
+            InitializeAsync();
         }
 
-        public void ScrollToSearchResult(FileContentSearchResult searchResult)
+        private CoreWebView2Environment _environment;
+
+        async void InitializeAsync()
         {
-            ContentTextBox.ScrollToLine(searchResult.Line);
-            var index = LineCounter.GetCharacterIndex(ContentTextBox.Text, searchResult.Line, searchResult.Column);
+            _environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(Path.GetTempPath(), "GitCodeSearch"));
+            await WebView.EnsureCoreWebView2Async(_environment);
 
-            var contentLength = ContentTextBox.Text.Length;
+            WebView.NavigationCompleted += async (o, e) => await LoadContentToEditor();
+            WebView.Source = new Uri(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"Monaco\index.html"));
+        }
 
-            ContentTextBox.Select(index, searchResult.Query.Expression.Length);
-            ContentTextBox.Focus();
+        private async void UserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            await LoadContentToEditor();
+        }
+
+        private async Task LoadContentToEditor()
+        {
+            if (WebView.CoreWebView2 != null)
+            {
+                string javaScript = CreateJavascriptToLoadContent();
+                await WebView.ExecuteScriptAsync(javaScript);
+            }
+        }
+
+        private string CreateJavascriptToLoadContent()
+        {
+            PreviewViewModel viewModel = (PreviewViewModel)DataContext;
+            FileContentSearchResult searchResult = viewModel.SearchResult;
+
+            string language = DetectLanguageFromFileName(searchResult.FullPath);
+            string content = HttpUtility.JavaScriptStringEncode(viewModel.Content);
+
+            return $@"loadContentToEditor('{language}', {searchResult.Line}, {searchResult.Column},
+                                                        {searchResult.Query.Expression.Length}, '{content}')";
+        }
+
+        private static string DetectLanguageFromFileName(string fullPath)
+        {
+            var extension = Path.GetExtension(fullPath);
+            switch (extension)
+            {
+                case ".cs":
+                    return "csharp";
+
+                case ".js":
+                    return "javascript";
+
+                case ".css":
+                    return "css";
+
+                case ".sql":
+                    return "sql";
+
+                case ".py":
+                    return "python";
+
+                case ".java":
+                    return "java";
+
+                case ".cpp":
+                case ".h":
+                    return "cpp";
+
+                case ".ps1":
+                    return "powershell";
+
+                case ".ts":
+                    return "typescript";
+
+                case ".xml":
+                case ".xsl":
+                case ".ism":
+                case ".csproj":
+                case ".dcproj":
+                case ".nuspec":
+                case ".include":
+                case ".resx":
+                case ".targets":
+                case ".wsdl":
+                    return "xml";
+
+                case ".html":
+                    return "html";
+
+                case ".md":
+                    return "markdown";
+
+                case ".bat":
+                case ".cmd":
+                    return "bat";
+
+                case ".json":
+                    return "json";
+
+                case ".yml":
+                case ".yaml":
+                    return "yaml";
+
+                case ".sh":
+                    return "shell";
+
+                case "":
+                    if(Path.GetFileNameWithoutExtension(fullPath).Equals("Dockerfile", StringComparison.OrdinalIgnoreCase))
+                        return "dockerfile";
+                    else
+                        return "plaintext";
+
+                default:
+                    return "plaintext";
+            }
         }
     }
 }
