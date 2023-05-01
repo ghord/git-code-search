@@ -34,6 +34,7 @@ namespace GitCodeSearch.ViewModels
         private bool isRegex_ = false;
         private SearchType searchType_;
         private string pattern_;
+        private static PreviewView previewView_;
 
         public MainViewModel(Window owner, Settings settings)
         {
@@ -150,14 +151,9 @@ namespace GitCodeSearch.ViewModels
 
             if (content != null)
             {
-                var viewModel = new PreviewViewModel(searchResult, content);
-                var view = new PreviewView { DataContext = viewModel };
-                view.Loaded += (o, e) =>
-                    {
-
-                        view.ScrollToSearchResult(searchResult);
-                    };
-                DialogHelper.ShowDialog(view, searchResult.Path, owner_);
+                previewView_ ??= new PreviewView();
+                previewView_.DataContext = new PreviewViewModel(searchResult, content);
+                DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
             }
         }
 
