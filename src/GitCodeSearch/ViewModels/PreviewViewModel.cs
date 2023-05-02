@@ -11,9 +11,11 @@ namespace GitCodeSearch.ViewModels
     {
         public PreviewViewModel(FileContentSearchResult searchResult, string content)
         {
+            SearchResult = searchResult;
             Content = content;
         }
 
-        public string Content { get; } 
+        public string Content { get; }
+        public FileContentSearchResult SearchResult { get; }
     }
 }
