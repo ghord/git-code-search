@@ -289,8 +289,6 @@ namespace GitCodeSearch.Model
             if (process == null)
                 return Array.Empty<string>();
 
-            await process.WaitForExitAsync();
-
             var reader = process.StandardOutput;
 
             var result = new List<string>();
@@ -299,6 +297,8 @@ namespace GitCodeSearch.Model
             {
                 result.Add(line.Trim());
             }
+
+            await process.WaitForExitAsync();
 
             return result.ToArray();
         }
