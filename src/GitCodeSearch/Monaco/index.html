@@ -26,6 +26,7 @@
         });
 
         function loadContentToEditor(language, line, column, searchLength, content) {
+            editor.setValue('');
             editor.getModel().setLanguage(language);
             editor.setValue(content);
             editor.revealLineInCenter(line);
