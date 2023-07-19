@@ -34,7 +34,7 @@ namespace GitCodeSearch.ViewModels
         private bool isRegex_ = false;
         private SearchType searchType_;
         private string pattern_;
-        private static PreviewView previewView_;
+        private static readonly PreviewView previewView_ = new();
 
         public MainViewModel(Window owner, Settings settings)
         {
@@ -151,7 +151,6 @@ namespace GitCodeSearch.ViewModels
 
             if (content != null)
             {
-                previewView_ ??= new PreviewView();
                 previewView_.DataContext = new PreviewViewModel(searchResult, content);
                 DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
             }
@@ -292,13 +291,13 @@ namespace GitCodeSearch.ViewModels
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
-                CurrentRepository = repository;
+                CurrentRepository = repository.Path;
 
                 switch (searchType_)
                 {
                     case SearchType.FileContent:
                         {
-                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive, IsRegex);
+                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository.Path, IsCaseSensitive, IsRegex);
 
                             await foreach (var result in GitHelper.SearchFileContentAsync(query, token))
                             {
@@ -310,7 +309,7 @@ namespace GitCodeSearch.ViewModels
                         }
                     case SearchType.CommitMessage:
                         {
-                            var query = new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive, IsRegex);
+                            var query = new CommitMessageSearchQuery(Search, Branch, repository.Path, IsCaseSensitive, IsRegex);
 
                             await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token))
                             {
@@ -345,7 +344,7 @@ namespace GitCodeSearch.ViewModels
 
             foreach (var repository in settings_.GitRepositores)
             {
-                CurrentRepository = repository;
+                CurrentRepository = repository.Path;
 
                 if (!GitHelper.IsRepository(repository))
                     continue;

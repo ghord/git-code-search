@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1722.45" />
+        <PackageReference Include="WindowsAPICodePack" Version="7.0.4" />
     </ItemGroup>
 
     <ItemGroup>

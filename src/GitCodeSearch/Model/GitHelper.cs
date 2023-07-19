@@ -246,11 +246,11 @@ namespace GitCodeSearch.Model
             return content;
         }
 
-        public static async Task FetchAsync(string repository, CancellationToken token)
+        public static async Task FetchAsync(GitRepository repository, CancellationToken token)
         {
             var psi = new ProcessStartInfo("git");
 
-            psi.WorkingDirectory = repository;
+            psi.WorkingDirectory = repository.Path;
             psi.ArgumentList.Add("fetch");
             psi.ArgumentList.Add("--all");
             psi.CreateNoWindow = true;
@@ -263,22 +263,24 @@ namespace GitCodeSearch.Model
             await process.WaitForExitAsync(token);
         }
 
-        public static bool IsRepository(string repository)
+        public static bool IsRepository(GitRepository repository)
         {
-            if (string.IsNullOrEmpty(repository))
+            if (!repository.Active)
                 return false;
-            if (!Directory.Exists(repository))
+            if (string.IsNullOrEmpty(repository.Path))
                 return false;
-            if (!Directory.Exists(Path.Combine(repository, ".git")))
+            if (!Directory.Exists(repository.Path))
+                return false;
+            if (!Directory.Exists(Path.Combine(repository.Path, ".git")))
                 return false;
             return true;
         }
 
-        public static async Task<string[]> GetBranchesAsync(string repository)
+        public static async Task<string[]> GetBranchesAsync(GitRepository repository)
         {
             var psi = new ProcessStartInfo("git");
 
-            psi.WorkingDirectory = repository;
+            psi.WorkingDirectory = repository.Path;
             psi.ArgumentList.Add("branch");
             psi.ArgumentList.Add("-r");
             psi.CreateNoWindow = true;
