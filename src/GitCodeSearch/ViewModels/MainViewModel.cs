@@ -249,11 +249,14 @@ namespace GitCodeSearch.ViewModels
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
+                if (!GitHelper.IsRepository(repository))
+                    continue;
+
                 var branches = await GitHelper.GetBranchesAsync(repository);
 
-                foreach(var branch in branches)
+                foreach (var branch in branches)
                 {
-                    if(branchStats.TryGetValue(branch, out int count))
+                    if (branchStats.TryGetValue(branch, out int count))
                     {
                         branchStats[branch] = ++count;
                     }
@@ -292,6 +295,16 @@ namespace GitCodeSearch.ViewModels
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
                 CurrentRepository = repository.Path;
+
+                if (!GitHelper.IsRepository(repository))
+                {
+                    if (settings_.ShowInactiveRepositoriesInSearchResult)
+                    {
+                        var result = new InactiveRepositorySearchResult(new InactiveRepositorySearchQuery(Branch, repository.Path));
+                        Results.Add(result);
+                    }
+                    continue;
+                }
 
                 switch (searchType_)
                 {

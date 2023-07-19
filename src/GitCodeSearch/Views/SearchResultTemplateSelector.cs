@@ -15,14 +15,17 @@ namespace GitCodeSearch.Views
 
         public DataTemplate? CommitMessageTemplate { get; set; }
 
+        public DataTemplate? InactiveRepositoryTemplate { get; set; }
+
         public override DataTemplate? SelectTemplate(object item, DependencyObject container)
         {
-            if (item is FileContentSearchResult)
-                return FileContentTemplate;
-            else if (item is CommitMessageSearchResult)
-                return CommitMessageTemplate;
-
-            return base.SelectTemplate(item, container);
+            return item switch
+            {
+                FileContentSearchResult => FileContentTemplate,
+                CommitMessageSearchResult => CommitMessageTemplate,
+                InactiveRepositorySearchResult => InactiveRepositoryTemplate,
+                _ => base.SelectTemplate(item, container)
+            };
         }
     }
 }
