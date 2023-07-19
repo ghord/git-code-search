@@ -1,6 +1,7 @@
 ﻿using GitCodeSearch.Model;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,24 +12,26 @@ namespace GitCodeSearch.ViewModels
     {
         public SettingsViewModel(Settings settings)
         {
-            gitRepositories_ = settings.GitRepositores is null ? 
-                string.Empty :
-                string.Join(Environment.NewLine, settings.GitRepositores);
+            gitRepositories_ = new GitRepositoriesViewModel(settings.GitRepositores);
+            ShowInactiveRepositoriesInSearchResult = settings.ShowInactiveRepositoriesInSearchResult;
         }
 
-        private string gitRepositories_;
+        private GitRepositoriesViewModel gitRepositories_;
 
-        public string GitRepositories
+        public GitRepositoriesViewModel GitRepositories
         {
             get { return gitRepositories_; }
             set { SetField(ref gitRepositories_, value); }
         }
 
+        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
+
         public Settings GetSettings()
         {
             return new Settings
             {
-                GitRepositores = gitRepositories_.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                GitRepositores = gitRepositories_.ToList(),
+                ShowInactiveRepositoriesInSearchResult = ShowInactiveRepositoriesInSearchResult,
             };
         }
     }

@@ -21,7 +21,7 @@ namespace GitCodeSearch.Views
             InitializeAsync();
         }
 
-        private CoreWebView2Environment _environment;
+        private CoreWebView2Environment? _environment;
 
         async void InitializeAsync()
         {

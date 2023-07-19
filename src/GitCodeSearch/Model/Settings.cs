@@ -11,7 +11,7 @@ namespace GitCodeSearch.Model
 {
     public class Settings
     {
-        public string[]? GitRepositores { get; set; }
+        public List<GitRepository> GitRepositores { get; set; } = new List<GitRepository>();
 
         public string? LastBranch { get; set; }
 
@@ -38,16 +38,18 @@ namespace GitCodeSearch.Model
             }
         }
 
-        public string[] GetValidatedGitRepositories()
+        public GitRepository[] GetValidatedGitRepositories()
         {
             if (GitRepositores == null)
-                return Array.Empty<string>();
+                return Array.Empty<GitRepository>();
 
-            return GitRepositores.Where(GitHelper.IsRepository).ToArray();
+            return GitRepositores.ToArray();
         }
 
         public bool IsCaseSensitive { get; set; }
 
         public bool IsRegex { get; set; }
+
+        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
     }
 }

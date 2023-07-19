@@ -11,22 +11,44 @@
             <ColumnDefinition Width="300" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        
+
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
+
         <ListBox Margin="2">
             <ListBoxItem IsSelected="True">
                 <TextBlock  Text="Git"></TextBlock>
             </ListBoxItem>
         </ListBox>
 
-        <StackPanel Grid.Column="1">
-            <TextBlock Text="Repositories:" Margin="2" />
-            <TextBox AcceptsReturn="True" Height="200" Text="{Binding GitRepositories, Mode=TwoWay}" Margin="2" />
-        </StackPanel>
+        <DockPanel Grid.Column="1" >
+            <TextBlock 
+                Text="Repositories:" 
+                Margin="2" 
+                DockPanel.Dock="Top"/>
+            
+
+            <StackPanel DockPanel.Dock="Bottom" Margin="5" Orientation="Horizontal">
+                <Button Content="Add repositories" Click="FindRepositories_Click" Padding="5,2" Margin="2" MinWidth="75" />
+                <Button Content="Remove repositories" Click="RemoveRepositories_Click" Padding="5,2" Margin="2" MinWidth="75" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="5" Orientation="Horizontal">
+                <CheckBox Content="Show inactive repositories in search results" IsChecked="{Binding ShowInactiveRepositoriesInSearchResult}"></CheckBox>
+            </StackPanel>
+
+            <DataGrid DockPanel.Dock="Top"
+                      x:Name="RepositoriesDataGrid"
+                      HorizontalGridLinesBrush="Silver" 
+                      VerticalGridLinesBrush="Silver" 
+                      ItemsSource="{Binding GitRepositories, Mode=TwoWay}"
+                      SelectionMode="Extended"
+                      AutoGeneratingColumn="RepositoriesDataGrid_AutoGeneratingColumn">
+                <DataGrid.Resources>
+                </DataGrid.Resources>
+            </DataGrid>
+        </DockPanel>
 
         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Padding="5,2" MinWidth="75" Margin="2" Content="Ok" Click="Button_Click" />
