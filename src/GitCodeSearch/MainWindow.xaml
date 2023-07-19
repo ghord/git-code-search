@@ -37,6 +37,14 @@
                     </TextBlock>
                 </DataTemplate>
             </views:SearchResultTemplateSelector.CommitMessageTemplate>
+            <views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
+                <DataTemplate>
+                    <TextBlock Foreground="Silver" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
+                        <Run Text="{Binding Text, Mode=OneWay}" />
+                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
         </views:SearchResultTemplateSelector>
     </Window.Resources>
     <Grid FocusManager.FocusedElement="{Binding ElementName=SearchBox}">

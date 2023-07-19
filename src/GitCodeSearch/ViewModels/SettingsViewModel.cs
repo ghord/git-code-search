@@ -13,6 +13,7 @@ namespace GitCodeSearch.ViewModels
         public SettingsViewModel(Settings settings)
         {
             gitRepositories_ = new GitRepositoriesViewModel(settings.GitRepositores);
+            ShowInactiveRepositoriesInSearchResult = settings.ShowInactiveRepositoriesInSearchResult;
         }
 
         private GitRepositoriesViewModel gitRepositories_;
@@ -23,11 +24,14 @@ namespace GitCodeSearch.ViewModels
             set { SetField(ref gitRepositories_, value); }
         }
 
+        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
+
         public Settings GetSettings()
         {
             return new Settings
             {
-                GitRepositores = gitRepositories_.ToList()
+                GitRepositores = gitRepositories_.ToList(),
+                ShowInactiveRepositoriesInSearchResult = ShowInactiveRepositoriesInSearchResult,
             };
         }
     }

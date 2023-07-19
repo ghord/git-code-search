@@ -25,6 +25,9 @@ namespace GitCodeSearch.Model
     public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
         : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
 
+    public record InactiveRepositorySearchQuery(string? Branch, string RepositoryPath)
+        : SearchQuery(Branch, RepositoryPath, false, false);
+
     public interface ISearchResult
     {
         SearchQuery Query { get; }
@@ -54,6 +57,16 @@ namespace GitCodeSearch.Model
         public override string GetText()
         {
             return Hash + " " + Message;
+        }
+    }
+
+    public record InactiveRepositorySearchResult(InactiveRepositorySearchQuery Query) : SearchResult<InactiveRepositorySearchQuery>(Query)
+    {
+        public string Text => GetText();
+
+        public override string GetText()
+        {
+            return "Inactive repository";
         }
     }
 
@@ -263,7 +276,7 @@ namespace GitCodeSearch.Model
             await process.WaitForExitAsync(token);
         }
 
-        public static bool IsRepository(GitRepository repository)
+        public static bool IsActiveRepository(GitRepository repository)
         {
             if (!repository.Active)
                 return false;
