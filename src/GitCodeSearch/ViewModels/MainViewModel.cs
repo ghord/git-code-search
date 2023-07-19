@@ -270,7 +270,7 @@ namespace GitCodeSearch.ViewModels
 
             Branches.Add(null);
 
-            foreach (var branch in branchStats.OrderByDescending(b => b.Value).ThenBy(b => b.Key))
+            foreach (var branch in branchStats.OrderBy(b => b.Key.ToLower()))
             {
                 Branches.Add(branch.Key);
             }
@@ -279,12 +279,16 @@ namespace GitCodeSearch.ViewModels
                 Branch = previousBranch;
             else
                 Branch = null;
+            RaisePropertyChanged(nameof(Branches));
         }
 
         private async Task SearchAsync(CancellationToken token)
         {
             Results.Clear();
             CurrentRepository = null;
+
+            if (string.IsNullOrEmpty(Search))
+                return;
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
@@ -298,11 +302,10 @@ namespace GitCodeSearch.ViewModels
 
                             await foreach (var result in GitHelper.SearchFileContentAsync(query, token))
                             {
+                                if (token.IsCancellationRequested)
+                                    break;
                                 Results.Add(result);
                             }
-
-                            if (token.IsCancellationRequested)
-                                break;
                             break;
                         }
                     case SearchType.CommitMessage:
@@ -311,14 +314,16 @@ namespace GitCodeSearch.ViewModels
 
                             await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token))
                             {
+                                if (token.IsCancellationRequested)
+                                    break;
                                 Results.Add(result);
                             }
-
-                            if (token.IsCancellationRequested)
-                                break;
                             break;
                         }
                 }
+
+                if (token.IsCancellationRequested)
+                    break;
 
             }
 
@@ -345,7 +350,7 @@ namespace GitCodeSearch.ViewModels
                 if (!GitHelper.IsRepository(repository))
                     continue;
 
-                await GitHelper.FetchAsync(repository);
+                await GitHelper.FetchAsync(repository, token);
 
                 if (token.IsCancellationRequested)
                     break;

@@ -246,7 +246,7 @@ namespace GitCodeSearch.Model
             return content;
         }
 
-        public static async Task FetchAsync(string repository)
+        public static async Task FetchAsync(string repository, CancellationToken token)
         {
             var psi = new ProcessStartInfo("git");
 
@@ -260,7 +260,7 @@ namespace GitCodeSearch.Model
             if (process == null)
                 return;
 
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync(token);
         }
 
         public static bool IsRepository(string repository)
