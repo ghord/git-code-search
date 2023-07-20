@@ -25,8 +25,8 @@ namespace GitCodeSearch.Model
     public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
         : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
 
-    public record InactiveRepositorySearchQuery(string? Branch, string RepositoryPath)
-        : SearchQuery(Branch, RepositoryPath, false, false);
+    public record InactiveRepositorySearchQuery(SearchQuery originalQuery) :
+        SearchQuery(originalQuery.Branch, originalQuery.Repository, originalQuery.IsCaseSensitive, originalQuery.IsRegex);
 
     public interface ISearchResult
     {
@@ -60,13 +60,13 @@ namespace GitCodeSearch.Model
         }
     }
 
-    public record InactiveRepositorySearchResult(InactiveRepositorySearchQuery Query) : SearchResult<InactiveRepositorySearchQuery>(Query)
+    public record InactiveRepositorySearchResult(InactiveRepositorySearchQuery Query, int Count) : SearchResult<InactiveRepositorySearchQuery>(Query)
     {
         public string Text => GetText();
 
         public override string GetText()
         {
-            return "Inactive repository";
+            return $"{Count} result{(Count == 1?"":"s")} (inactive)";
         }
     }
 
@@ -81,7 +81,6 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("--grep=" + searchQuery.Expression);
             psi.ArgumentList.Add("--pretty=format:%h%x09%an%x09%ad%x09%s");
             psi.ArgumentList.Add("--date=iso");
-
             if (!searchQuery.IsCaseSensitive)
                 psi.ArgumentList.Add("--regexp-ignore-case");
 
@@ -111,7 +110,6 @@ namespace GitCodeSearch.Model
             }
         }
 
-       
         public static async IAsyncEnumerable<FileContentSearchResult> SearchFileContentAsync(FileContentSearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var psi = new ProcessStartInfo("git");
@@ -155,6 +153,7 @@ namespace GitCodeSearch.Model
                     yield return searchResult;
             }
         }
+
 
         private static bool TryParseCommitMessageSearchResult(string text, CommitMessageSearchQuery query, [NotNullWhen(true)]  out CommitMessageSearchResult? searchResult)
         {

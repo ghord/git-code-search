@@ -49,5 +49,15 @@ namespace GitCodeSearch
             var viewModel = (MainViewModel)DataContext;
             await viewModel.SaveSettingsAsync();
         }
+
+        private void Search_Click(object sender, RoutedEventArgs e)
+        {
+            var viewModel = (MainViewModel)DataContext;
+
+            if (viewModel.SearchCommand.IsRunning)
+                viewModel.SearchCommand.CancelCommand?.Execute(null);
+
+            viewModel.SearchCommand.Execute(null);
+        }
     }
 }
