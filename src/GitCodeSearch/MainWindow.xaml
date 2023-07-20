@@ -40,8 +40,8 @@
             <views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
                 <DataTemplate>
                     <TextBlock Foreground="Silver" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
-                        <Run Text="{Binding Text, Mode=OneWay}" />
                         <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
+                        <Run Text="{Binding Text, Mode=OneWay}" />
                     </TextBlock>
                 </DataTemplate>
             </views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
@@ -57,7 +57,8 @@
 
         <DockPanel LastChildFill="True" Margin="6,2">
 
-            <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Command="{Binding SearchCommand}" />
+            <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Click="Search_Click" />
+
 
             <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1" MinWidth="150"
                       ItemsSource="{Binding Branches, Converter={StaticResource EnumerableNullReplaceConverter}, ConverterParameter='(local)'}" 

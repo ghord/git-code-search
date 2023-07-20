@@ -213,7 +213,7 @@ namespace GitCodeSearch.ViewModels
         }
 
 
-        public ICommand SearchCommand { get; }
+        public RelayCommand SearchCommand { get; }
         public ICommand SettingsCommand { get; }
         public ICommand FetchAllCommand { get; }
         public ICommand ShowPreviewCommand { get; }
@@ -249,7 +249,7 @@ namespace GitCodeSearch.ViewModels
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
-                if (!GitHelper.IsRepository(repository))
+                if (!GitHelper.IsActiveRepository(repository))
                     continue;
 
                 var branches = await GitHelper.GetBranchesAsync(repository);
@@ -292,17 +292,14 @@ namespace GitCodeSearch.ViewModels
             if (string.IsNullOrEmpty(Search))
                 return;
 
+            var search = Search;
+
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
                 CurrentRepository = repository.Path;
 
-                if (!GitHelper.IsRepository(repository))
+                if (!GitHelper.IsActiveRepository(repository) && !settings_.ShowInactiveRepositoriesInSearchResult)
                 {
-                    if (settings_.ShowInactiveRepositoriesInSearchResult)
-                    {
-                        var result = new InactiveRepositorySearchResult(new InactiveRepositorySearchQuery(Branch, repository.Path));
-                        Results.Add(result);
-                    }
                     continue;
                 }
 
@@ -310,26 +307,64 @@ namespace GitCodeSearch.ViewModels
                 {
                     case SearchType.FileContent:
                         {
-                            var query = new FileContentSearchQuery(Search, Pattern, Branch, repository.Path, IsCaseSensitive, IsRegex);
+                            var query = new FileContentSearchQuery(search, Pattern, Branch, repository.Path, IsCaseSensitive, IsRegex);
 
-                            await foreach (var result in GitHelper.SearchFileContentAsync(query, token))
+                            if (GitHelper.IsActiveRepository(repository))
                             {
-                                if (token.IsCancellationRequested)
-                                    break;
-                                Results.Add(result);
+                                await foreach (var result in GitHelper.SearchFileContentAsync(query, token).WithCancellation(token))
+                                {
+                                    Results.Add(result);
+                                }
+                            }
+                            else
+                            {
+                                var inactiveQuery = new InactiveRepositorySearchQuery(query);
+
+                                int count = 0;
+                                await foreach (var result in GitHelper.SearchFileContentAsync(query).WithCancellation(token))
+                                {
+                                    count++;
+                                }
+
+                                if (count > 0 && !token.IsCancellationRequested)
+                                {
+                                    Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
+                                }
                             }
                             break;
                         }
                     case SearchType.CommitMessage:
                         {
-                            var query = new CommitMessageSearchQuery(Search, Branch, repository.Path, IsCaseSensitive, IsRegex);
+                            var query = new CommitMessageSearchQuery(search, Branch, repository.Path, IsCaseSensitive, IsRegex);
 
-                            await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token))
+
+                            if (GitHelper.IsActiveRepository(repository))
                             {
-                                if (token.IsCancellationRequested)
-                                    break;
-                                Results.Add(result);
+                                  
+                                await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token).WithCancellation(token))
+                                {
+                                    if (token.IsCancellationRequested)
+                                        break;
+                                    Results.Add(result);
+                                }
                             }
+                            else
+                            {
+                                var inactiveQuery = new InactiveRepositorySearchQuery(query);
+
+                                int count = 0;
+                                await foreach(var result in  GitHelper.SearchCommitMessageAsync(query).WithCancellation(token))
+                                {
+                                    count++;
+                                }
+
+                                if(count > 0 && !token.IsCancellationRequested)
+                                {
+                                    Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
+                                }
+                            }
+
+
                             break;
                         }
                 }
@@ -359,7 +394,7 @@ namespace GitCodeSearch.ViewModels
             {
                 CurrentRepository = repository.Path;
 
-                if (!GitHelper.IsRepository(repository))
+                if (!GitHelper.IsActiveRepository(repository))
                     continue;
 
                 await GitHelper.FetchAsync(repository, token);
