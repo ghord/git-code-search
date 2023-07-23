@@ -23,6 +23,8 @@ namespace GitCodeSearch.Views
 
         private CoreWebView2Environment? _environment;
 
+        public string? Theme { get; set; }
+
         async void InitializeAsync()
         {
             _environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(Path.GetTempPath(), "GitCodeSearch"));
@@ -55,7 +57,7 @@ namespace GitCodeSearch.Views
             string content = HttpUtility.JavaScriptStringEncode(viewModel.Content);
 
             return $@"loadContentToEditor('{language}', {searchResult.Line}, {searchResult.Column},
-                                                        {searchResult.Query.Expression.Length}, '{content}')";
+                                                        {searchResult.Query.Expression.Length}, '{Theme}', '{content}')";
         }
 
         private static string DetectLanguageFromFileName(string fullPath)

@@ -18,20 +18,38 @@
     </script>
     <script src="./min/vs/editor/editor.main.nls.js"></script>
     <script src="./min/vs/editor/editor.main.js"></script>
+    <!-- Themes -->
+    <script src="./min/vs/themes/Monokai.js"></script>
+    <script src="./min/vs/themes/GitHub Dark.js"></script>
+    <script src="./min/vs/themes/GitHub Light.js"></script>
+    <script src="./min/vs/themes/Clouds.js"></script>
+    <script src="./min/vs/themes/Clouds Midnight.js"></script>
+    <script src="./min/vs/themes/Xcode_default.js"></script>
+    <script src="./min/vs/themes/Pastels on Dark.js"></script>
+
     <script>
         var editor = monaco.editor.create(document.getElementById('container'), {
-            automaticLayout: true,
-            readOnly: true,
-            fontSize: 12
+        automaticLayout: true,
+        readOnly: true,
+        fontSize: 12
         });
 
-        function loadContentToEditor(language, line, column, searchLength, content) {
-            editor.setValue('');
-            editor.getModel().setLanguage(language);
-            editor.setValue(content);
-            editor.revealLineInCenter(line);
-            editor.setSelection(new monaco.Range(line, column, line, column + searchLength));
-            editor.getAction('actions.find').run();
+        monaco.editor.defineTheme('monokai', Monokai);
+        monaco.editor.defineTheme('github-dark', GitHubDark);
+        monaco.editor.defineTheme('github-light', GitHubLight);
+        monaco.editor.defineTheme('clouds', Clouds);
+        monaco.editor.defineTheme('clouds-midnight', CloudsMidnight);
+        monaco.editor.defineTheme('xcode-default', XcodeDefault);
+        monaco.editor.defineTheme('pastels-on-dark', PastelsOnDark);
+
+        function loadContentToEditor(language, line, column, searchLength, theme, content) {
+        editor.setValue('');
+        editor.getModel().setLanguage(language);
+        editor.setValue(content);
+        monaco.editor.setTheme(theme);
+        editor.revealLineInCenter(line);
+        editor.setSelection(new monaco.Range(line, column, line, column + searchLength));
+        editor.getAction('actions.find').run();
         }
     </script>
 </body>
