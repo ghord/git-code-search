@@ -4,11 +4,17 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:GitCodeSearch.Views"
+             xmlns:utilities="clr-namespace:GitCodeSearch.Utilities" 
+             xmlns:viewmodels="clr-namespace:GitCodeSearch.ViewModels"
              mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="6">
+        <Grid.Resources>
+            <utilities:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
+        </Grid.Resources>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="200" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
@@ -17,42 +23,31 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ListBox Margin="2">
-            <ListBoxItem IsSelected="True">
-                <TextBlock  Text="Git"></TextBlock>
-            </ListBoxItem>
+        <ListBox x:Name="SettingsSections" ItemsSource="{Binding SettingsSections}" SelectionMode="Single" Margin="2">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Converter={StaticResource EnumDescriptionConverter}}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
         </ListBox>
 
-        <DockPanel Grid.Column="1" >
-            <TextBlock 
-                Text="Repositories:" 
-                Margin="2" 
-                DockPanel.Dock="Top"/>
-            
-
-            <StackPanel DockPanel.Dock="Bottom" Margin="5" Orientation="Horizontal">
-                <Button Content="Add repositories" Click="FindRepositories_Click" Padding="5,2" Margin="2" MinWidth="75" />
-                <Button Content="Remove repositories" Click="RemoveRepositories_Click" Padding="5,2" Margin="2" MinWidth="75" />
-            </StackPanel>
-            <StackPanel DockPanel.Dock="Bottom" Margin="5" Orientation="Horizontal">
-                <CheckBox Content="Show inactive repositories in search results" IsChecked="{Binding ShowInactiveRepositoriesInSearchResult}"></CheckBox>
-            </StackPanel>
-
-            <DataGrid DockPanel.Dock="Top"
-                      x:Name="RepositoriesDataGrid"
-                      HorizontalGridLinesBrush="Silver" 
-                      VerticalGridLinesBrush="Silver" 
-                      ItemsSource="{Binding GitRepositories, Mode=TwoWay}"
-                      SelectionMode="Extended"
-                      AutoGeneratingColumn="RepositoriesDataGrid_AutoGeneratingColumn">
-                <DataGrid.Resources>
-                </DataGrid.Resources>
-            </DataGrid>
-        </DockPanel>
 
         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Padding="5,2" MinWidth="75" Margin="2" Content="Ok" Click="Button_Click" />
             <Button Padding="5,2" MinWidth="75" Margin="2" Content="Cancel" IsCancel="True" />
         </StackPanel>
+        <TabControl Grid.Column="1" SelectedIndex="{Binding ElementName=SettingsSections, Path=SelectedIndex}" BorderThickness="0">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Style>
+            </TabControl.ItemContainerStyle>
+            <TabItem>
+                <local:GitSettingsView />
+            </TabItem>
+            <TabItem>
+                <local:UserInterfaceSettingsView />
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

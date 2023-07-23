@@ -34,6 +34,7 @@ namespace GitCodeSearch.ViewModels
         private bool isRegex_ = false;
         private SearchType searchType_;
         private string pattern_;
+        private ObservableCollection<string> searchHistory_;
         private static readonly PreviewView previewView_ = new();
 
         public MainViewModel(Window owner, Settings settings)
@@ -49,11 +50,12 @@ namespace GitCodeSearch.ViewModels
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
             OpenSolutionCommand = new RelayCommand<FileContentSearchResult>(OpenSolution);
             SaveResultsCommand = new RelayCommand(SaveResults);
-            branch_ = settings.LastBranch;
+            branch_ = settings.Branch;
             isCaseSensitive_ = settings.IsCaseSensitive;
             isRegex_ = settings.IsRegex;
             pattern_ = "*";
-            this.owner_ = owner;
+            owner_ = owner;
+            searchHistory_ = new ObservableCollection<string>(settings_.SearchHistory);
         }
 
         private void SaveResults()
@@ -151,6 +153,7 @@ namespace GitCodeSearch.ViewModels
 
             if (content != null)
             {
+                previewView_.Theme = settings_.PreviewTheme;
                 previewView_.DataContext = new PreviewViewModel(searchResult, content);
                 DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
             }
@@ -196,7 +199,11 @@ namespace GitCodeSearch.ViewModels
         public string? Branch
         {
             get { return branch_; }
-            set { SetField(ref branch_, value); }
+            set 
+            {
+                settings_.Branch = value;
+                SetField(ref branch_, value); 
+            }
         }
 
 
@@ -210,6 +217,12 @@ namespace GitCodeSearch.ViewModels
         {
             get { return pattern_; }
             set { SetField(ref pattern_, value); }
+        }
+
+        public ObservableCollection<string> SearchHistory 
+        {
+            get => searchHistory_;
+            set => SetField(ref searchHistory_, value);
         }
 
 
@@ -293,6 +306,7 @@ namespace GitCodeSearch.ViewModels
                 return;
 
             var search = Search;
+            UpdateSearchHistory();
 
             foreach (var repository in settings_.GetValidatedGitRepositories())
             {
@@ -374,13 +388,19 @@ namespace GitCodeSearch.ViewModels
 
             }
 
-            if (settings_.LastBranch != branch_)
+            if (settings_.Branch != branch_)
             {
-                settings_.LastBranch = branch_;
+                settings_.Branch = branch_;
                 await settings_.SaveAsync(Settings.DefaultPath);
             }
 
             CurrentRepository = null;
+        }
+
+        private void UpdateSearchHistory()
+        {
+            settings_.UpdateSearchHistory(Search);
+            SearchHistory = new ObservableCollection<string>(settings_.SearchHistory);
         }
 
         private async Task FetchAllAsync(CancellationToken token)
