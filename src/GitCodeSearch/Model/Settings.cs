@@ -11,11 +11,21 @@ namespace GitCodeSearch.Model
 {
     public class Settings
     {
-        public List<GitRepository> GitRepositores { get; set; } = new List<GitRepository>();
+        public List<GitRepository> GitRepositores { get; set; } = new();
 
-        public string? LastBranch { get; set; }
+        public string? Branch { get; set; }
 
-        public static string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
+        public bool IsCaseSensitive { get; set; }
+
+        public bool IsRegex { get; set; }
+
+        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
+
+        public string PreviewTheme { get; set; } = "vs";
+
+        public List<string> SearchHistory { get; set; } = new();
+
+        public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
 
         public async Task SaveAsync(string path)
         {
@@ -46,10 +56,17 @@ namespace GitCodeSearch.Model
             return GitRepositores.ToArray();
         }
 
-        public bool IsCaseSensitive { get; set; }
+        public void UpdateSearchHistory(string search)
+        {
+            const int MaxHistoryCount = 50;
 
-        public bool IsRegex { get; set; }
+            SearchHistory.Remove(search);
+            SearchHistory.Insert(0, search);
 
-        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
+            if (SearchHistory.Count > MaxHistoryCount)
+            {
+                SearchHistory.RemoveRange(MaxHistoryCount, SearchHistory.Count - MaxHistoryCount);
+            }
+        }
     }
 }
