@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:GitCodeSearch" 
         xmlns:vm="clr-namespace:GitCodeSearch.ViewModels"
         xmlns:views="clr-namespace:GitCodeSearch.Views"
-        xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
+        xmlns:converters="clr-namespace:GitCodeSearch.Converters"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d" x:Name="Root"
         Title="Git Code Search" Height="768" Width="1024"
@@ -56,24 +57,20 @@
         </Grid.RowDefinitions>
 
         <DockPanel LastChildFill="True" Margin="6,2">
-
-            <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75" Content="Search" IsDefault="True" TabIndex="2" Click="Search_Click" />
-
+            <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75"
+                    Content="Search" IsDefault="True" TabIndex="2"
+                    Click="Search_Click" Width="75" />
 
             <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1" MinWidth="150"
                       ItemsSource="{Binding Branches, Converter={StaticResource EnumerableNullReplaceConverter}, ConverterParameter='(local)'}" 
                       SelectedValue="{Binding Branch, Mode=TwoWay, Converter={StaticResource NullReplaceConverter}, ConverterParameter='(local)'}" />
 
-
-            <ComboBox x:Name="SearchBox" 
-                     Margin="2" 
-                     Padding="2" 
-                     VerticalContentAlignment="Center" 
-                     Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                     TabIndex="0" IsEditable="True"
-                     ItemsSource="{Binding SearchHistory, UpdateSourceTrigger=PropertyChanged }"
+            <ComboBox x:Name="SearchBox" Margin="2" Padding="2" VerticalContentAlignment="Center" TabIndex="0" IsEditable="True" 
+                     Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     ItemsSource="{Binding SearchHistory, UpdateSourceTrigger=PropertyChanged }" 
                      />
         </DockPanel>
+
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
             <CheckBox Margin="2" IsChecked="{Binding IsRegex, Mode=TwoWay}" VerticalAlignment="Center" Content="Regex" />
@@ -92,56 +89,69 @@
                     ToolTip="Settings" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding FetchAllCommand}" Content=""
                     ToolTip="Fetch All" FontFamily="Segoe UI Symbol" Padding="5,2" />
-            
+
         </DockPanel>
-
-
-        <ListBox Grid.Row="2" Margin="8" Padding="0" 
-                 VirtualizingPanel.VirtualizationMode="Recycling"
-                 ItemsSource="{Binding Results}" ScrollViewer.VerticalScrollBarVisibility="Visible" FontFamily="Consolas" ItemTemplateSelector="{StaticResource SearchResultTemplateSelector}">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem">
-                    <EventSetter Event="MouseDoubleClick" Handler="ListBoxItem_MouseDoubleClick" />
-                    <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+        
+        <!-- Search results -->
+        <TabControl x:Name="TabControl" Grid.Row="2" Margin="4" ItemsSource="{Binding SearchResults}" SelectedIndex="{Binding ActiveTabIndex}" Panel.ZIndex="1000">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Visibility" Value="{Binding TabVisibility}"/>
+                    <Setter Property="AllowDrop" Value="True"/>
+                    <EventSetter Event="PreviewMouseMove" Handler="TabItem_PreviewMouseMove"/>
+                    <EventSetter Event="Drop" Handler="TabItem_Drop"/>
+                    <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TabControl}}" />
                     <Setter Property="ContextMenu">
                         <Setter.Value>
                             <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="Preview" FontWeight="Bold" 
-                                          Command="{Binding Tag.ShowPreviewCommand}" 
+                                <MenuItem Header="Close tab" FontWeight="Bold" 
+                                          Command="{Binding Tag.CloseTabCommand}" 
                                           CommandParameter="{Binding DataContext}"/>
-                                <MenuItem Header="Open file"
-                                          Command="{Binding Tag.OpenFileCommand}" 
-                                          CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Copy path"
-                                          Command="{Binding Tag.CopyPathCommand}" 
-                                          CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Reveal in explorer"
-                                          Command="{Binding Tag.RevealInExplorerCommand}" 
-                                          CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Copy hash"
-                                          Command="{Binding Tag.CopyHashCommand}"
-                                          CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Open solution"
-                                          ToolTip="Open solution containing file"
-                                          Command="{Binding Tag.OpenSolutionCommand}"
-                                          CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Close other tabs" 
+                                          Command="{Binding Tag.CloseOtherTabsCommand}"
+                                          CommandParameter="{Binding DataContext}"/>
+                                <MenuItem Header="Close all tabs" 
+                                          Command="{Binding Tag.CloseAllTabsCommand}"
+                                          CommandParameter="{Binding DataContext}"/>
                             </ContextMenu>
                         </Setter.Value>
                     </Setter>
                 </Style>
-            </ListBox.ItemContainerStyle>
+            </TabControl.ItemContainerStyle>
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid MouseUp="TabItem_Click" Background="Transparent" Margin="-6,-2">
+                        <Grid Margin="6,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Results.Count}" Margin="0,0,4,0" FontWeight="Bold" Foreground="Gray"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Search}" ToolTip="{Binding Search}" TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                            <TextBlock x:Name="CloseButton" Grid.Column="2"
+                                   Margin="3,0,0,0" Width="10" Height="10"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   FontFamily="Segoe UI Symbol" FontSize="10"
+                                   Text="" MouseDown="CloseButton_Click" Visibility="Hidden" />
+                        </Grid>
+                    </Grid>
+                    <DataTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True" >
+                            <Setter TargetName="CloseButton" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <views:SearchResultsView />
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
 
-
-        </ListBox>
-
+        <!-- Status bar -->
         <StatusBar Grid.Row="3" Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}" BorderThickness="0,1,0,0" BorderBrush="{StaticResource {x:Static SystemColors.ActiveBorderBrushKey}}">
-            <StatusBarItem Margin="5,2" MinWidth="200">
-                <TextBlock>
-                    <Run Text="{Binding Results.Count, Mode=OneWay}" />
-                    <Run Text="matches found" />
-                </TextBlock>
-            </StatusBarItem>
-            <Separator />
             <StatusBarItem Margin="5,2" Visibility="{Binding SearchCommand.IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock>
                     <Run Text="Searching (" />

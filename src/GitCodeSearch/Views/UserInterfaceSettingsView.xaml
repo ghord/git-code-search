@@ -15,8 +15,10 @@
         
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         
+        <!-- Preview editor theme -->
         <StackPanel Orientation="Horizontal">
             <TextBlock Text="Preview editor theme:" Margin="4" VerticalAlignment="Center"/>
             <ComboBox ItemsSource="{Binding PreviewThemes}" 
@@ -30,5 +32,9 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
         </StackPanel>
+        
+        <!-- Display search results in separate tabs -->
+        <CheckBox Grid.Row="1" Margin="4" IsChecked="{Binding UseTabs}" Content="Display search results in separate tabs"/>
+
     </Grid>
 </UserControl>

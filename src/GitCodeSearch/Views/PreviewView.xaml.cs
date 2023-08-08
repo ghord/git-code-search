@@ -93,6 +93,7 @@ namespace GitCodeSearch.Views
                 case ".ts":
                     return "typescript";
 
+                case ".build":
                 case ".xml":
                 case ".xsl":
                 case ".ism":

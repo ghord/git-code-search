@@ -66,7 +66,7 @@ namespace GitCodeSearch.Model
 
         public override string GetText()
         {
-            return $"{Count} result{(Count == 1?"":"s")} (inactive)";
+            return $"{Count} result{(Count == 1 ? "" : "s")} (inactive)";
         }
     }
 
@@ -155,7 +155,7 @@ namespace GitCodeSearch.Model
         }
 
 
-        private static bool TryParseCommitMessageSearchResult(string text, CommitMessageSearchQuery query, [NotNullWhen(true)]  out CommitMessageSearchResult? searchResult)
+        private static bool TryParseCommitMessageSearchResult(string text, CommitMessageSearchQuery query, [NotNullWhen(true)] out CommitMessageSearchResult? searchResult)
         {
             searchResult = null;
 
@@ -180,9 +180,9 @@ namespace GitCodeSearch.Model
             if (idx < 0)
                 return false;
 
-            if(!DateTime.TryParse(text[lastIdx..idx], null, DateTimeStyles.RoundtripKind, out var date))
+            if (!DateTime.TryParse(text[lastIdx..idx], null, DateTimeStyles.RoundtripKind, out var date))
                 return false;
-           
+
             searchResult = new CommitMessageSearchResult(text[(idx + 1)..], hash, author, date, query);
 
             return true;
@@ -191,6 +191,7 @@ namespace GitCodeSearch.Model
 
         private static bool TryParseFileContentSearchResult(string text, FileContentSearchQuery query, [NotNullWhen(true)] out FileContentSearchResult? searchResult)
         {
+            const int MaxLineLength = 8_000;
             searchResult = null;
 
             var idx = text.IndexOf(':');
@@ -228,7 +229,8 @@ namespace GitCodeSearch.Model
             if (!int.TryParse(text[lastIdx..idx], out int column))
                 return false;
 
-            searchResult = new FileContentSearchResult(text[(idx + 1)..], path, line, column, query);
+            string trimmedLine = text[(idx + 1)..Math.Min(text.Length, MaxLineLength)].TrimStart();
+            searchResult = new FileContentSearchResult(trimmedLine, path, line, column, query);
 
             return true;
         }

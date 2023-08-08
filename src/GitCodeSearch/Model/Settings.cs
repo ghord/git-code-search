@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GitCodeSearch.Utilities;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,17 +24,31 @@ namespace GitCodeSearch.Model
 
         public string PreviewTheme { get; set; } = "vs";
 
-        public List<string> SearchHistory { get; set; } = new();
+        public SearchHistory SearchHistory { get; set; } = new();
+
+        public bool UseTabs { get; set; }
 
         public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
 
-        public async Task SaveAsync(string path)
+        public static Settings Current { get; set; } = new Settings();
+
+        public static async Task LoadAsync()
+        {
+            Current = await LoadAsync(DefaultPath) ?? new Settings();
+        }
+
+        public static async Task SaveAsync()
+        {
+            await Current.SaveAsync(DefaultPath);
+        }
+
+        private async Task SaveAsync(string path)
         {
             using var stream = File.Create(path);
             await JsonSerializer.SerializeAsync(stream, this);
         }
 
-        public async static Task<Settings?> LoadAsync(string path)
+        private async static Task<Settings?> LoadAsync(string path)
         {
             try
             {
@@ -45,27 +60,6 @@ namespace GitCodeSearch.Model
             catch
             {
                 return null;
-            }
-        }
-
-        public GitRepository[] GetValidatedGitRepositories()
-        {
-            if (GitRepositores == null)
-                return Array.Empty<GitRepository>();
-
-            return GitRepositores.ToArray();
-        }
-
-        public void UpdateSearchHistory(string search)
-        {
-            const int MaxHistoryCount = 50;
-
-            SearchHistory.Remove(search);
-            SearchHistory.Insert(0, search);
-
-            if (SearchHistory.Count > MaxHistoryCount)
-            {
-                SearchHistory.RemoveRange(MaxHistoryCount, SearchHistory.Count - MaxHistoryCount);
             }
         }
     }
