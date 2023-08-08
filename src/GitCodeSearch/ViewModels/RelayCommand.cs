@@ -1,32 +1,31 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace GitCodeSearch.ViewModels
 {
     public class RelayCommand : ICommand, INotifyPropertyChanged
     {
-        private Func<CancellationToken, Task> action_;
+        private readonly Func<CancellationToken, Task> action_;
+        private readonly Func<bool>? canExecute_;
         private bool running_;
-        private CancellationTokenSource cts_ = new CancellationTokenSource();
+        private CancellationTokenSource cts_ = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public RelayCommand(Action action)
+        public RelayCommand(Action action, Func<bool>? canExecute = null)
         {
             action_ = _ =>
             {
                 action();
                 return Task.CompletedTask;
             };
+            canExecute_ = canExecute;
         }
 
-        public RelayCommand(Action<CancellationToken> action)
+        public RelayCommand(Action<CancellationToken> action, Func<bool>? canExecute = null)
         {
             action_ = token =>
             {
@@ -36,24 +35,28 @@ namespace GitCodeSearch.ViewModels
                 else
                     return Task.CompletedTask;
             };
+            canExecute_ = canExecute;
             CancelCommand = new RelayCommand(Cancel);
+
         }
 
-        public RelayCommand(Func<Task> action)
+        public RelayCommand(Func<Task> action, Func<bool>? canExecute = null)
         {
             action_ = _ => action();
+            canExecute_ = canExecute;
         }
 
-        public RelayCommand(Func<CancellationToken, Task> action)
+        public RelayCommand(Func<CancellationToken, Task> action, Func<bool>? canExecute = null)
         {
             action_ = action;
+            canExecute_ = canExecute;
             CancelCommand = new RelayCommand(Cancel);
         }
 
         private void Cancel()
         {
             cts_.Cancel();
-         
+
         }
 
         public event EventHandler? CanExecuteChanged
@@ -62,21 +65,29 @@ namespace GitCodeSearch.ViewModels
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public bool IsRunning => running_;
+        public bool IsRunning
+        {
+            get => running_;
+            set
+            {
+                running_ = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+            }
+        }
 
         public bool CanExecute(object? parameter)
         {
-            return !running_;
+            return !IsRunning && canExecute_?.Invoke() != false;
         }
 
         public ICommand? CancelCommand { get; }
 
         public void Execute(object? parameter)
         {
-            running_ = true;
+            IsRunning = true;
             cts_.Dispose();
             cts_ = new CancellationTokenSource();
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+
             CommandManager.InvalidateRequerySuggested();
 
             try
@@ -85,8 +96,7 @@ namespace GitCodeSearch.ViewModels
             }
             finally
             {
-                running_ = false;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+                IsRunning = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -94,22 +104,24 @@ namespace GitCodeSearch.ViewModels
 
     public class RelayCommand<T> : ICommand, INotifyPropertyChanged
     {
-        private Func<T, CancellationToken, Task> action_;
+        private readonly Func<T, CancellationToken, Task> action_;
+        private readonly Func<T, bool>? canExecute_;
         private bool running_;
-        private CancellationTokenSource cts_ = new CancellationTokenSource();
+        private CancellationTokenSource cts_ = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public RelayCommand(Action<T> action)
+        public RelayCommand(Action<T> action, Func<T, bool>? canExecute = null)
         {
             action_ = (param, _) =>
             {
                 action(param);
                 return Task.CompletedTask;
             };
+            canExecute_ = canExecute;
         }
 
-        public RelayCommand(Action<CancellationToken> action)
+        public RelayCommand(Action<CancellationToken> action, Func<T, bool>? canExecute = null)
         {
             action_ = (param, token) =>
             {
@@ -119,24 +131,26 @@ namespace GitCodeSearch.ViewModels
                 else
                     return Task.CompletedTask;
             };
+            canExecute_ = canExecute;
             CancelCommand = new RelayCommand(Cancel);
         }
 
-        public RelayCommand(Func<T, Task> action)
+        public RelayCommand(Func<T, Task> action, Func<T, bool>? canExecute = null)
         {
             action_ = (param, _) => action(param);
+            canExecute_ = canExecute;
         }
 
-        public RelayCommand(Func<T, CancellationToken, Task> action)
+        public RelayCommand(Func<T, CancellationToken, Task> action, Func<T, bool>? canExecute = null)
         {
             action_ = action;
+            canExecute_ = canExecute;
             CancelCommand = new RelayCommand(Cancel);
         }
 
         private void Cancel()
         {
             cts_.Cancel();
-
         }
 
         public event EventHandler? CanExecuteChanged
@@ -145,14 +159,26 @@ namespace GitCodeSearch.ViewModels
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public bool IsRunning => running_;
+        public bool IsRunning
+        {
+            get => running_;
+            set
+            {
+                running_ = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+            }
+        }
 
         public bool CanExecute(object? parameter)
         {
-            if (parameter is not T)
+            if (parameter is T value)
+            {
+                return !IsRunning && canExecute_?.Invoke(value) != false;
+            }
+            else
+            {
                 return false;
-
-            return !running_;
+            }
         }
 
         public ICommand? CancelCommand { get; }
@@ -162,10 +188,10 @@ namespace GitCodeSearch.ViewModels
             if (parameter is not T value)
                 return;
 
-            running_ = true;
+            IsRunning = true;
             cts_.Dispose();
             cts_ = new CancellationTokenSource();
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+
             CommandManager.InvalidateRequerySuggested();
 
             try
@@ -174,8 +200,7 @@ namespace GitCodeSearch.ViewModels
             }
             finally
             {
-                running_ = false;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRunning)));
+                IsRunning = false;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
