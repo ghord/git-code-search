@@ -1,8 +1,10 @@
 ﻿using GitCodeSearch.Model;
+using GitCodeSearch.Utilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace GitCodeSearch.ViewModels
 {
@@ -17,9 +19,9 @@ namespace GitCodeSearch.ViewModels
 
     public class SettingsViewModel : ViewModelBase
     {
-        public SettingsViewModel(Settings settings)
+        public SettingsViewModel()
         {
-            SetSettings(settings);
+            Initialize(Settings.Current);
         }
 
         public GitRepositoriesViewModel GitRepositories { get; set; }
@@ -28,7 +30,8 @@ namespace GitCodeSearch.ViewModels
         public bool IsRegex { get; set; }
         public bool ShowInactiveRepositoriesInSearchResult { get; set; }
         public string PreviewTheme { get; set; }
-        public List<string> SearchHistory { get; set; }
+        public SearchHistory SearchHistory { get; set; }
+        public bool UseTabs { get; set; }
 
         public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
 
@@ -50,7 +53,7 @@ namespace GitCodeSearch.ViewModels
         }
 
         [MemberNotNull(nameof(GitRepositories), nameof(SearchHistory), nameof(PreviewTheme))]
-        private void SetSettings(Settings settings)
+        private void Initialize(Settings settings)
         {
             GitRepositories = new GitRepositoriesViewModel(settings.GitRepositores);
             Branch = settings.Branch;
@@ -59,11 +62,12 @@ namespace GitCodeSearch.ViewModels
             ShowInactiveRepositoriesInSearchResult = settings.ShowInactiveRepositoriesInSearchResult;
             PreviewTheme = settings.PreviewTheme;
             SearchHistory = settings.SearchHistory;
+            UseTabs = settings.UseTabs;
         }
 
-        public Settings GetSettings()
+        internal async Task ApplySettings()
         {
-            return new Settings
+            Settings.Current = new Settings
             {
                 GitRepositores = GitRepositories.ToList(),
                 Branch = Branch,
@@ -72,7 +76,9 @@ namespace GitCodeSearch.ViewModels
                 ShowInactiveRepositoriesInSearchResult = ShowInactiveRepositoriesInSearchResult,
                 PreviewTheme = PreviewTheme,
                 SearchHistory = SearchHistory,
+                UseTabs = UseTabs,
             };
+            await Settings.SaveAsync();
         }
     }
 }

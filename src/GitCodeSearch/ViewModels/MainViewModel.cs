@@ -1,15 +1,12 @@
 ﻿using GitCodeSearch.Model;
+using GitCodeSearch.Utilities;
 using GitCodeSearch.Views;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,135 +24,28 @@ namespace GitCodeSearch.ViewModels
     {
         private string search_ = string.Empty;
         private readonly Window owner_;
-        private Settings settings_;
         private string? currentRepository_;
-        private string? branch_;
-        private bool isCaseSensitive_ = false;
-        private bool isRegex_ = false;
         private SearchType searchType_;
-        private string pattern_;
-        private ObservableCollection<string> searchHistory_;
-        private static readonly PreviewView previewView_ = new();
+        private string pattern_ = "*";
+        private ObservableCollection<string> searchHistory_ = new(Settings.Current.SearchHistory);
+        private ObservableCollection<SearchResultsViewModel> searchResults_ = new ObservableCollection<SearchResultsViewModel>();
+        private int activeTabIndex_ = -1;
 
-        public MainViewModel(Window owner, Settings settings)
+        public MainViewModel(Window owner)
         {
-            settings_ = settings;
+            owner_ = owner;
             SearchCommand = new RelayCommand(SearchAsync);
             SettingsCommand = new RelayCommand(SettingsAsync);
             FetchAllCommand = new RelayCommand(FetchAllAsync);
-            ShowPreviewCommand = new RelayCommand<FileContentSearchResult>(ShowPreviewAsync);
-            OpenFileCommand = new RelayCommand<FileContentSearchResult>(OpenFile);
-            RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
-            CopyPathCommand = new RelayCommand<FileContentSearchResult>(CopyPath);
-            CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
-            OpenSolutionCommand = new RelayCommand<FileContentSearchResult>(OpenSolution);
-            SaveResultsCommand = new RelayCommand(SaveResults);
-            branch_ = settings.Branch;
-            isCaseSensitive_ = settings.IsCaseSensitive;
-            isRegex_ = settings.IsRegex;
-            pattern_ = "*";
-            owner_ = owner;
-            searchHistory_ = new ObservableCollection<string>(settings_.SearchHistory);
-        }
+            SaveResultsCommand = new RelayCommand(SaveResults, CanExecuteSaveResults);
+            CloseTabCommand = new RelayCommand<SearchResultsViewModel>(CloseTab);
+            CloseOtherTabsCommand = new RelayCommand<SearchResultsViewModel>(CloseOtherTabs, CanExecuteCloseOtherTabs);
+            CloseAllTabsCommand = new RelayCommand(CloseAllTabs);
 
-        private void SaveResults()
-        {
-            var dialog = new SaveFileDialog();
-
-            dialog.Filter = "Text file|*.txt";
-            try
+            SearchResultsViewModel.Initialize(owner_);
+            if (!Settings.Current.UseTabs)
             {
-
-                if (dialog.ShowDialog(Application.Current.MainWindow) == true)
-                {
-                    File.WriteAllLines(dialog.FileName, Results.Select(r => r.GetText()));
-                }
-            }
-
-            catch (Exception e)
-            {
-                MessageBox.Show(e.ToString());
-            }
-        }
-
-        public async Task SaveSettingsAsync()
-        {
-            await settings_.SaveAsync(Settings.DefaultPath);
-        }
-
-        private void CopyHash(CommitMessageSearchResult searchResult)
-        {
-            Clipboard.SetText(searchResult.Hash);
-
-        }
-
-        private void CopyPath(FileContentSearchResult searchResult)
-        {
-            try
-            {
-                Clipboard.SetText(new Uri(searchResult.FullPath).LocalPath);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-            }
-
-        }
-
-        private void OpenFile(FileContentSearchResult searchResult)
-        {
-            try
-            {
-                Process.Start(searchResult.FullPath);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
-            }
-        }
-
-        private void OpenSolution(FileContentSearchResult searchResult)
-        {
-            var directory = Directory.GetParent(searchResult.FullPath);
-            while (directory != null)
-            {
-                var files = directory.GetFiles("*.sln");
-                if (files.Any())
-                {
-                    ExplorerHelper.OpenFileInDefaultProgram(files[0].FullName);
-                    return;
-                }
-                directory = directory.Parent;
-            }
-
-            MessageBox.Show($"There is no solution file in parent directories");
-        }
-
-        private void RevealInExplorer(FileContentSearchResult searchResult)
-        {
-            var filePath = searchResult.FullPath;
-
-            if (!File.Exists(filePath))
-            {
-                MessageBox.Show($"File {filePath} does not exist");
-                return;
-            }
-
-            if (Path.GetDirectoryName(filePath) is string directory && Path.GetFileName(filePath) is string fileName)
-            {
-                ExplorerHelper.OpenFolderAndSelectItem(directory, fileName);
-            }
-        }
-
-        private async Task ShowPreviewAsync(FileContentSearchResult searchResult)
-        {
-            var content = await GitHelper.GetFileContentAsync(searchResult.Query.RepositoryPath, searchResult.Path, searchResult.Query.Branch);
-
-            if (content != null)
-            {
-                previewView_.Theme = settings_.PreviewTheme;
-                previewView_.DataContext = new PreviewViewModel(searchResult, content);
-                DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
+                AddSearchResults();
             }
         }
 
@@ -177,35 +67,34 @@ namespace GitCodeSearch.ViewModels
 
         public bool IsCaseSensitive
         {
-            get { return isCaseSensitive_; }
+            get => Settings.Current.IsCaseSensitive;
             set
             {
-                settings_.IsCaseSensitive = value;
-                SetField(ref isCaseSensitive_, value);
+                Settings.Current.IsCaseSensitive = value;
+                RaisePropertyChanged();
             }
         }
 
 
         public bool IsRegex
         {
-            get { return isRegex_; }
+            get => Settings.Current.IsRegex;
             set
             {
-                settings_.IsRegex = value;
-                SetField(ref isRegex_, value);
+                Settings.Current.IsRegex = value;
+                RaisePropertyChanged();
             }
         }
 
         public string? Branch
         {
-            get { return branch_; }
-            set 
+            get => Settings.Current.Branch;
+            set
             {
-                settings_.Branch = value;
-                SetField(ref branch_, value); 
+                Settings.Current.Branch = value;
+                RaisePropertyChanged();
             }
         }
-
 
         public SearchType SearchType
         {
@@ -219,38 +108,56 @@ namespace GitCodeSearch.ViewModels
             set { SetField(ref pattern_, value); }
         }
 
-        public ObservableCollection<string> SearchHistory 
+        public ObservableCollection<string> SearchHistory
         {
             get => searchHistory_;
             set => SetField(ref searchHistory_, value);
         }
 
+        public int ActiveTabIndex
+        {
+            get => activeTabIndex_;
+            set => SetField(ref activeTabIndex_, value);
+        }
+
+        public ObservableCollection<SearchResultsViewModel> SearchResults
+        {
+            get => searchResults_;
+            private set => SetField(ref searchResults_, value);
+        }
+
+        public bool IsActiveSearchResults(SearchResultsViewModel searchResults)
+        {
+            return SearchResults[ActiveTabIndex] == searchResults;
+        }
 
         public RelayCommand SearchCommand { get; }
         public ICommand SettingsCommand { get; }
         public ICommand FetchAllCommand { get; }
-        public ICommand ShowPreviewCommand { get; }
-        public ICommand RevealInExplorerCommand { get; }
-        public ICommand CopyPathCommand { get; }
         public ICommand SaveResultsCommand { get; }
-        public ICommand CopyHashCommand { get; }
-        public ICommand OpenFileCommand { get; }
-        public ICommand OpenSolutionCommand { get; }
-        public ObservableCollection<ISearchResult> Results { get; } = new ObservableCollection<ISearchResult>();
+        public ICommand CloseTabCommand { get; }
+        public ICommand CloseOtherTabsCommand { get; }
+        public ICommand CloseAllTabsCommand { get; }
+
 
         private async Task SettingsAsync()
         {
-            var viewModel = new SettingsViewModel(settings_);
+            var viewModel = new SettingsViewModel();
             var view = new SettingsView { DataContext = viewModel };
 
             if (DialogHelper.ShowDialog(view, "Settings", owner_))
             {
-                settings_ = viewModel.GetSettings();
-                await settings_.SaveAsync(Settings.DefaultPath);
-
-
+                await viewModel.ApplySettings();
                 await UpdateBranchesAsync();
+                UpdateTabsVisibility();
+            }
+        }
 
+        private void UpdateTabsVisibility()
+        {
+            foreach (var searchResultViewModel in SearchResults)
+            {
+                searchResultViewModel.TabVisibility = Settings.Current.UseTabs ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -260,7 +167,7 @@ namespace GitCodeSearch.ViewModels
 
             Dictionary<string, int> branchStats = new Dictionary<string, int>();
 
-            foreach (var repository in settings_.GetValidatedGitRepositories())
+            foreach (var repository in Settings.Current.GitRepositores)
             {
                 if (!GitHelper.IsActiveRepository(repository))
                     continue;
@@ -282,7 +189,6 @@ namespace GitCodeSearch.ViewModels
 
             Branches.Clear();
 
-
             Branches.Add(null);
 
             foreach (var branch in branchStats.OrderBy(b => b.Key.ToLower()))
@@ -297,22 +203,72 @@ namespace GitCodeSearch.ViewModels
             RaisePropertyChanged(nameof(Branches));
         }
 
+        private SearchResultsViewModel GetOrAddSearchResults()
+        {
+            SearchResultsViewModel searchResults;
+            int index;
+
+            if (Settings.Current.UseTabs)
+            {
+                index = SearchResults.FindIndex(r => r.Search == search_);
+                if (index != -1)
+                {
+                    searchResults = ReuseSearchResults(index);
+                }
+                else
+                {
+                    searchResults = AddSearchResults();
+                    index = SearchResults.Count - 1;
+                }
+            }
+            else
+            {
+                index = 0;
+                if (SearchResults.Any())
+                {
+                    searchResults = ReuseSearchResults(index);
+                }
+                else
+                {
+                    searchResults = AddSearchResults();
+                }
+            }
+
+            ActiveTabIndex = index;
+
+            return searchResults;
+        }
+
+        private SearchResultsViewModel AddSearchResults()
+        {
+            var searchResults = new SearchResultsViewModel { Search = search_ };
+            SearchResults.Add(searchResults);
+            return searchResults;
+        }
+
+        private SearchResultsViewModel ReuseSearchResults(int index)
+        {
+            SearchResultsViewModel searchResults = SearchResults[index];
+            searchResults.Search = search_;
+            searchResults.Results.Clear();
+            return searchResults;
+        }
+
         private async Task SearchAsync(CancellationToken token)
         {
-            Results.Clear();
-            CurrentRepository = null;
-
             if (string.IsNullOrEmpty(Search))
                 return;
 
-            var search = Search;
-            UpdateSearchHistory();
+            SearchResultsViewModel searchResults = GetOrAddSearchResults();
+            string search = search_;
 
-            foreach (var repository in settings_.GetValidatedGitRepositories())
+            UpdateSearchHistory(search);
+
+            foreach (var repository in Settings.Current.GitRepositores)
             {
                 CurrentRepository = repository.Path;
 
-                if (!GitHelper.IsActiveRepository(repository) && !settings_.ShowInactiveRepositoriesInSearchResult)
+                if (!GitHelper.IsActiveRepository(repository) && !Settings.Current.ShowInactiveRepositoriesInSearchResult)
                 {
                     continue;
                 }
@@ -327,7 +283,7 @@ namespace GitCodeSearch.ViewModels
                             {
                                 await foreach (var result in GitHelper.SearchFileContentAsync(query, token).WithCancellation(token))
                                 {
-                                    Results.Add(result);
+                                    searchResults.Results.Add(result);
                                 }
                             }
                             else
@@ -342,7 +298,7 @@ namespace GitCodeSearch.ViewModels
 
                                 if (count > 0 && !token.IsCancellationRequested)
                                 {
-                                    Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
+                                    searchResults.Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
                                 }
                             }
                             break;
@@ -354,12 +310,12 @@ namespace GitCodeSearch.ViewModels
 
                             if (GitHelper.IsActiveRepository(repository))
                             {
-                                  
+
                                 await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token).WithCancellation(token))
                                 {
                                     if (token.IsCancellationRequested)
                                         break;
-                                    Results.Add(result);
+                                    searchResults.Results.Add(result);
                                 }
                             }
                             else
@@ -367,14 +323,15 @@ namespace GitCodeSearch.ViewModels
                                 var inactiveQuery = new InactiveRepositorySearchQuery(query);
 
                                 int count = 0;
-                                await foreach(var result in  GitHelper.SearchCommitMessageAsync(query).WithCancellation(token))
+                                await foreach (var result in GitHelper.SearchCommitMessageAsync(query).WithCancellation(token))
                                 {
                                     count++;
+                                    break;
                                 }
 
-                                if(count > 0 && !token.IsCancellationRequested)
+                                if (count > 0 && !token.IsCancellationRequested)
                                 {
-                                    Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
+                                    searchResults.Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
                                 }
                             }
 
@@ -388,29 +345,23 @@ namespace GitCodeSearch.ViewModels
 
             }
 
-            if (settings_.Branch != branch_)
-            {
-                settings_.Branch = branch_;
-                await settings_.SaveAsync(Settings.DefaultPath);
-            }
-
             CurrentRepository = null;
         }
 
-        private void UpdateSearchHistory()
+        private void UpdateSearchHistory(string search)
         {
-            settings_.UpdateSearchHistory(Search);
-            SearchHistory = new ObservableCollection<string>(settings_.SearchHistory);
+            Settings.Current.SearchHistory.Add(search);
+            SearchHistory = new ObservableCollection<string>(Settings.Current.SearchHistory);
         }
 
         private async Task FetchAllAsync(CancellationToken token)
         {
             CurrentRepository = null;
 
-            if (settings_.GitRepositores == null)
+            if (Settings.Current.GitRepositores == null)
                 return;
 
-            foreach (var repository in settings_.GitRepositores)
+            foreach (var repository in Settings.Current.GitRepositores)
             {
                 CurrentRepository = repository.Path;
 
@@ -424,6 +375,52 @@ namespace GitCodeSearch.ViewModels
             }
 
             CurrentRepository = null;
+        }
+
+        private void SaveResults()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Filter = "Text file|*.txt"
+            };
+
+            try
+            {
+                if (dialog.ShowDialog(Application.Current.MainWindow) == true)
+                {
+                    File.WriteAllLines(dialog.FileName, SearchResults[ActiveTabIndex].Results.Select(r => r.GetText()));
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+        }
+
+        private bool CanExecuteSaveResults()
+        {
+            return SearchResults.Any();
+        }
+
+        private void CloseTab(SearchResultsViewModel searchResultViewModel)
+        {
+            SearchResults.Remove(searchResultViewModel);
+        }
+
+        private void CloseOtherTabs(SearchResultsViewModel searchResultViewModel)
+        {
+            SearchResults = new ObservableCollection<SearchResultsViewModel>(new[] { searchResultViewModel });
+            ActiveTabIndex = 0;
+        }
+
+        private bool CanExecuteCloseOtherTabs(SearchResultsViewModel searchResultViewModel)
+        {
+            return SearchResults.Count > 1;
+        }
+
+        private void CloseAllTabs()
+        {
+            SearchResults.Clear();
         }
     }
 }
