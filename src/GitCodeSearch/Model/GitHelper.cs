@@ -260,6 +260,16 @@ namespace GitCodeSearch.Model
             return content;
         }
 
+        public static string GetRemote(string? branch)
+        {
+            return branch?.Split("/").First() ?? "origin";
+        }
+        
+        public static string GetBranch(string? branch)
+        {
+            return branch?.Split("/").Last() ?? "main";
+        }
+
         public static async Task FetchAsync(GitRepository repository, CancellationToken token)
         {
             var psi = new ProcessStartInfo("git");
@@ -317,6 +327,51 @@ namespace GitCodeSearch.Model
             await process.WaitForExitAsync();
 
             return result.ToArray();
+        }
+
+        public static async Task<string> GetRemoteUrl(string repositoryPath, string? branch, bool stripGitExtension)
+        {
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = repositoryPath,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true
+            };
+
+            psi.ArgumentList.Add("remote");
+            psi.ArgumentList.Add("get-url");
+            psi.ArgumentList.Add(GetRemote(branch));
+
+            var process = Process.Start(psi);
+
+            if (process == null)
+                return string.Empty;
+
+            var reader = process.StandardOutput;
+
+            string repositoryUrl = string.Empty;
+
+            if (reader.ReadLine() is string line)
+            {
+                repositoryUrl = line;
+            }
+
+            await process.WaitForExitAsync();
+
+            if(stripGitExtension && repositoryUrl.EndsWith(".git"))
+            {
+                repositoryUrl = repositoryUrl[..^4];
+            }
+
+            return repositoryUrl;
+        }
+
+
+        public static async Task<string> GetFileRemotePath(string repositoryPath, string? branch, string filePath)
+        {
+            string repositoryUrl = await GetRemoteUrl(repositoryPath, branch, true);
+
+            return $@"{repositoryUrl}/blob/{GetBranch(branch)}/{filePath}";
         }
 
         private static string GetRegexArgument(this SearchQuery searchQuery)

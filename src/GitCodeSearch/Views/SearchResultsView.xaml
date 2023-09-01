@@ -69,21 +69,26 @@
                                 <MenuItem Header="Preview" FontWeight="Bold" 
                                           Command="{Binding Tag.ShowPreviewCommand}" 
                                           CommandParameter="{Binding DataContext}"/>
+                                <Separator/>
                                 <MenuItem Header="Open file"
                                           Command="{Binding Tag.OpenFileCommand}" 
                                           CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Copy path"
-                                          Command="{Binding Tag.CopyPathCommand}" 
+                                <MenuItem Header="View file in remote repository"
+                                          Command="{Binding Tag.ViewFileInRemoteCommand}" 
                                           CommandParameter="{Binding DataContext}" />
                                 <MenuItem Header="Reveal in explorer"
                                           Command="{Binding Tag.RevealInExplorerCommand}" 
                                           CommandParameter="{Binding DataContext}" />
-                                <MenuItem Header="Copy hash"
-                                          Command="{Binding Tag.CopyHashCommand}"
-                                          CommandParameter="{Binding DataContext}" />
                                 <MenuItem Header="Open solution"
                                           ToolTip="Open solution containing file"
                                           Command="{Binding Tag.OpenSolutionCommand}"
+                                          CommandParameter="{Binding DataContext}" />
+                                <Separator/>
+                                <MenuItem Header="Copy path"
+                                          Command="{Binding Tag.CopyPathCommand}" 
+                                          CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Copy hash"
+                                          Command="{Binding Tag.CopyHashCommand}"
                                           CommandParameter="{Binding DataContext}" />
                             </ContextMenu>
                         </Setter.Value>
