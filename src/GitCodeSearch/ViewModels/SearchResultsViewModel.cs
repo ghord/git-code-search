@@ -20,6 +20,7 @@ namespace GitCodeSearch.ViewModels
         {
             ShowPreviewCommand = new RelayCommand<FileContentSearchResult>(ShowPreviewAsync);
             OpenFileCommand = new RelayCommand<FileContentSearchResult>(OpenFile);
+            ViewFileInRemoteCommand = new RelayCommand<FileContentSearchResult>(ViewFileInRemote);
             CopyPathCommand = new RelayCommand<FileContentSearchResult>(CopyPath);
             RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
@@ -55,6 +56,7 @@ namespace GitCodeSearch.ViewModels
 
         public ICommand ShowPreviewCommand { get; }
         public ICommand OpenFileCommand { get; }
+        public ICommand ViewFileInRemoteCommand { get; }
         public ICommand CopyPathCommand { get; }
         public ICommand RevealInExplorerCommand { get; }
         public ICommand CopyHashCommand { get; }
@@ -66,7 +68,6 @@ namespace GitCodeSearch.ViewModels
 
             if (content != null && owner_ != null)
             {
-                previewView_.Theme = Settings.Current.PreviewTheme;
                 previewView_.DataContext = new PreviewViewModel(searchResult, content);
                 DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
             }
@@ -77,6 +78,20 @@ namespace GitCodeSearch.ViewModels
             try
             {
                 Process.Start(searchResult.FullPath);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+            }
+        }
+
+        private async Task ViewFileInRemote(FileContentSearchResult searchResult)
+        {
+            try
+            {
+                string url = await GitHelper.GetFileRemotePath(searchResult.Query.RepositoryPath, searchResult.Query.Branch, searchResult.Path);
+
+                Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = url });
             }
             catch (Exception e)
             {
