@@ -264,7 +264,7 @@ namespace GitCodeSearch.ViewModels
 
             UpdateSearchHistory(search);
 
-            foreach (var repository in Settings.Current.GitRepositores)
+            foreach (var repository in Settings.Current.GitRepositores.OrderByDescending(GitHelper.IsActiveRepository))
             {
                 CurrentRepository = repository.Path;
 
