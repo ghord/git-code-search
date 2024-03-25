@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GitCodeSearch.Model
 {
@@ -19,9 +15,7 @@ namespace GitCodeSearch.Model
 
         public static void OpenFolderAndSelectItem(string folderPath, string file)
         {
-            IntPtr nativeFolder;
-            uint psfgaoOut;
-            SHParseDisplayName(folderPath, IntPtr.Zero, out nativeFolder, 0, out psfgaoOut);
+            SHParseDisplayName(folderPath, IntPtr.Zero, out nint nativeFolder, 0, out _);
 
             if (nativeFolder == IntPtr.Zero)
             {
@@ -29,18 +23,17 @@ namespace GitCodeSearch.Model
                 return;
             }
 
-            IntPtr nativeFile;
-            SHParseDisplayName(Path.Combine(folderPath, file), IntPtr.Zero, out nativeFile, 0, out psfgaoOut);
+            SHParseDisplayName(Path.Combine(folderPath, file), IntPtr.Zero, out nint nativeFile, 0, out _);
 
             IntPtr[] fileArray;
             if (nativeFile == IntPtr.Zero)
             {
                 // Open the folder without the file selected if we can't find the file
-                fileArray = new IntPtr[0];
+                fileArray = [];
             }
             else
             {
-                fileArray = new IntPtr[] { nativeFile };
+                fileArray = [nativeFile];
             }
 
             SHOpenFolderAndSelectItems(nativeFolder, (uint)fileArray.Length, fileArray, 0);

@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 
 namespace GitCodeSearch.Converters
@@ -15,8 +12,7 @@ namespace GitCodeSearch.Converters
         {
             var collection = (IEnumerable)value;
 
-            return
-                collection
+            return collection
                 .Cast<object>()
                 .Select(x => x ?? parameter)
                 .ToArray();
