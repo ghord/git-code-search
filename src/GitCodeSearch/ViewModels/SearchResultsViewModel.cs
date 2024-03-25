@@ -40,7 +40,7 @@ namespace GitCodeSearch.ViewModels
             set => SetField(ref search_, value);
         }
 
-        private ObservableCollection<ISearchResult> results_ = new ObservableCollection<ISearchResult>();
+        private ObservableCollection<ISearchResult> results_ = [];
         public ObservableCollection<ISearchResult> Results
         {
             get => results_;
@@ -138,7 +138,7 @@ namespace GitCodeSearch.ViewModels
             while (directory != null)
             {
                 var files = directory.GetFiles("*.sln");
-                if (files.Any())
+                if (files.Length != 0)
                 {
                     ExplorerHelper.OpenFileInDefaultProgram(files[0].FullName);
                     return;

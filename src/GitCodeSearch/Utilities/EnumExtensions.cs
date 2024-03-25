@@ -21,7 +21,7 @@ namespace GitCodeSearch.Utilities
             }
 
             var attributes = (T[])fieldInfo.GetCustomAttributes(typeof(T), false);
-            if (!attributes.Any())
+            if (attributes.Length == 0)
             {
                 throw new Exception($"{enumType.Name}.{enumValue} do not have {typeof(T).Name} attribute");
             }

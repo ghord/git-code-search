@@ -6,11 +6,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Markup;
 
 namespace GitCodeSearch.Model
 {
@@ -25,8 +23,8 @@ namespace GitCodeSearch.Model
     public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
         : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
 
-    public record InactiveRepositorySearchQuery(SearchQuery originalQuery) :
-        SearchQuery(originalQuery.Branch, originalQuery.Repository, originalQuery.IsCaseSensitive, originalQuery.IsRegex);
+    public record InactiveRepositorySearchQuery(SearchQuery OriginalQuery) :
+        SearchQuery(OriginalQuery.Branch, OriginalQuery.Repository, OriginalQuery.IsCaseSensitive, OriginalQuery.IsRegex);
 
     public interface ISearchResult
     {
@@ -74,8 +72,13 @@ namespace GitCodeSearch.Model
     {
         public static async IAsyncEnumerable<CommitMessageSearchResult> SearchCommitMessageAsync(CommitMessageSearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var psi = new ProcessStartInfo("git");
-            psi.WorkingDirectory = searchQuery.RepositoryPath;
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = searchQuery.RepositoryPath,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
             psi.ArgumentList.Add("log");
             psi.ArgumentList.Add(searchQuery.GetRegexArgument());
             psi.ArgumentList.Add("--grep=" + searchQuery.Expression);
@@ -87,9 +90,6 @@ namespace GitCodeSearch.Model
             if (searchQuery.Branch != null)
                 psi.ArgumentList.Add(searchQuery.Branch);
 
-            psi.RedirectStandardOutput = true;
-            psi.CreateNoWindow = true;
-
             var process = Process.Start(psi);
 
             if (process == null)
@@ -97,7 +97,7 @@ namespace GitCodeSearch.Model
 
             var reader = process.StandardOutput;
 
-            while (await reader.ReadLineAsync() is string line)
+            while (await reader.ReadLineAsync(cancellationToken) is string line)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -112,8 +112,13 @@ namespace GitCodeSearch.Model
 
         public static async IAsyncEnumerable<FileContentSearchResult> SearchFileContentAsync(FileContentSearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var psi = new ProcessStartInfo("git");
-            psi.WorkingDirectory = searchQuery.RepositoryPath;
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = searchQuery.RepositoryPath,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+
             psi.ArgumentList.Add("grep");
             psi.ArgumentList.Add(searchQuery.GetRegexArgument());
             psi.ArgumentList.Add("--no-color");
@@ -131,9 +136,6 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("--");
             psi.ArgumentList.Add(searchQuery.Pattern);
 
-            psi.RedirectStandardOutput = true;
-            psi.CreateNoWindow = true;
-
             var process = Process.Start(psi);
 
             if (process == null)
@@ -141,7 +143,7 @@ namespace GitCodeSearch.Model
 
             var reader = process.StandardOutput;
 
-            while (await reader.ReadLineAsync() is string line)
+            while (await reader.ReadLineAsync(cancellationToken) is string line)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -235,18 +237,18 @@ namespace GitCodeSearch.Model
             return true;
         }
 
-        public static async Task<string?> GetFileContentAsync(string repository, string path, string? branch)
+        public static async Task<string?> GetFileContentAsync(string repository, string path, string? branchOrCommit)
         {
-            var psi = new ProcessStartInfo("git");
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = repository,
+                StandardOutputEncoding = Encoding.UTF8,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
 
-            psi.WorkingDirectory = repository;
             psi.ArgumentList.Add("show");
-            psi.ArgumentList.Add($"{branch ?? "HEAD"}:{path}");
-
-            psi.StandardOutputEncoding = Encoding.UTF8;
-            psi.RedirectStandardOutput = true;
-
-            psi.CreateNoWindow = true;
+            psi.ArgumentList.Add($"{branchOrCommit ?? "HEAD"}:{path}");
 
             var process = Process.Start(psi);
 
@@ -272,12 +274,14 @@ namespace GitCodeSearch.Model
 
         public static async Task FetchAsync(GitRepository repository, CancellationToken token)
         {
-            var psi = new ProcessStartInfo("git");
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = repository.Path,
+                CreateNoWindow = true
+            };
 
-            psi.WorkingDirectory = repository.Path;
             psi.ArgumentList.Add("fetch");
             psi.ArgumentList.Add("--all");
-            psi.CreateNoWindow = true;
 
             var process = Process.Start(psi);
 
@@ -302,18 +306,20 @@ namespace GitCodeSearch.Model
 
         public static async Task<string[]> GetBranchesAsync(GitRepository repository)
         {
-            var psi = new ProcessStartInfo("git");
+            var psi = new ProcessStartInfo("git")
+            {
+                WorkingDirectory = repository.Path,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true
+            };
 
-            psi.WorkingDirectory = repository.Path;
             psi.ArgumentList.Add("branch");
             psi.ArgumentList.Add("-r");
-            psi.CreateNoWindow = true;
-            psi.RedirectStandardOutput = true;
 
             var process = Process.Start(psi);
 
             if (process == null)
-                return Array.Empty<string>();
+                return [];
 
             var reader = process.StandardOutput;
 
