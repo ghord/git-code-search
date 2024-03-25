@@ -1,5 +1,4 @@
-﻿using GitCodeSearch.ViewModels;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace GitCodeSearch.Views
