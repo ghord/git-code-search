@@ -1,242 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace GitCodeSearch.Model
 {
-    public abstract record SearchQuery(string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
-    {
-        public string Repository { get; } = Path.GetFileName(RepositoryPath) ?? string.Empty;
-    }
-
-    public record FileContentSearchQuery(string Expression, string Pattern, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
-        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
-
-    public record CommitMessageSearchQuery(string Expression, string? Branch, string RepositoryPath, bool IsCaseSensitive, bool IsRegex)
-        : SearchQuery(Branch, RepositoryPath, IsCaseSensitive, IsRegex);
-
-    public record InactiveRepositorySearchQuery(SearchQuery OriginalQuery) :
-        SearchQuery(OriginalQuery.Branch, OriginalQuery.Repository, OriginalQuery.IsCaseSensitive, OriginalQuery.IsRegex);
-
-    public interface ISearchResult
-    {
-        SearchQuery Query { get; }
-        string GetText();
-    }
-
-    public abstract record SearchResult<TSearchQuery>(TSearchQuery Query) : ISearchResult where TSearchQuery : SearchQuery
-    {
-        SearchQuery ISearchResult.Query => Query;
-
-        public abstract string GetText();
-    }
-
-    public record FileContentSearchResult(string Text, string Path, int Line, int Column, FileContentSearchQuery Query) : SearchResult<FileContentSearchQuery>(Query)
-    {
-        public string ShortPath { get; } = System.IO.Path.GetFileName(Path);
-        public string FullPath => System.IO.Path.Combine(Query.RepositoryPath, Path);
-
-        public override string GetText()
-        {
-            return $"\"{FullPath}\":{Line}:{Column} {Text}";
-        }
-    }
-
-    public record CommitMessageSearchResult(string Message, string Hash, string Author, DateTime DateTime, CommitMessageSearchQuery Query) : SearchResult<CommitMessageSearchQuery>(Query)
-    {
-        public override string GetText()
-        {
-            return Hash + " " + Message;
-        }
-    }
-
-    public record InactiveRepositorySearchResult(InactiveRepositorySearchQuery Query, int Count) : SearchResult<InactiveRepositorySearchQuery>(Query)
-    {
-        public string Text => GetText();
-
-        public override string GetText()
-        {
-            return $"{Count} result{(Count == 1 ? "" : "s")} (inactive)";
-        }
-    }
-
     public static class GitHelper
     {
-        public static async IAsyncEnumerable<CommitMessageSearchResult> SearchCommitMessageAsync(CommitMessageSearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            var psi = new ProcessStartInfo("git")
-            {
-                WorkingDirectory = searchQuery.RepositoryPath,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-
-            psi.ArgumentList.Add("log");
-            psi.ArgumentList.Add(searchQuery.GetRegexArgument());
-            psi.ArgumentList.Add("--grep=" + searchQuery.Expression);
-            psi.ArgumentList.Add("--pretty=format:%h%x09%an%x09%ad%x09%s");
-            psi.ArgumentList.Add("--date=iso");
-            if (!searchQuery.IsCaseSensitive)
-                psi.ArgumentList.Add("--regexp-ignore-case");
-
-            if (searchQuery.Branch != null)
-                psi.ArgumentList.Add(searchQuery.Branch);
-
-            var process = Process.Start(psi);
-
-            if (process == null)
-                yield break;
-
-            var reader = process.StandardOutput;
-
-            while (await reader.ReadLineAsync(cancellationToken) is string line)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    process.Kill();
-                    yield break;
-                }
-
-                if (TryParseCommitMessageSearchResult(line, searchQuery, out var searchResult))
-                    yield return searchResult;
-            }
-        }
-
-        public static async IAsyncEnumerable<FileContentSearchResult> SearchFileContentAsync(FileContentSearchQuery searchQuery, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            var psi = new ProcessStartInfo("git")
-            {
-                WorkingDirectory = searchQuery.RepositoryPath,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true
-            };
-
-            psi.ArgumentList.Add("grep");
-            psi.ArgumentList.Add(searchQuery.GetRegexArgument());
-            psi.ArgumentList.Add("--no-color");
-            psi.ArgumentList.Add("--line-number");
-            psi.ArgumentList.Add("--column");
-
-            if (!searchQuery.IsCaseSensitive)
-                psi.ArgumentList.Add("--ignore-case");
-
-            psi.ArgumentList.Add(searchQuery.Expression);
-
-            if (searchQuery.Branch != null)
-                psi.ArgumentList.Add(searchQuery.Branch);
-
-            psi.ArgumentList.Add("--");
-            psi.ArgumentList.Add(searchQuery.Pattern);
-
-            var process = Process.Start(psi);
-
-            if (process == null)
-                yield break;
-
-            var reader = process.StandardOutput;
-
-            while (await reader.ReadLineAsync(cancellationToken) is string line)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    process.Kill();
-                    yield break;
-                }
-
-                if (TryParseFileContentSearchResult(line, searchQuery, out var searchResult))
-                    yield return searchResult;
-            }
-        }
-
-
-        private static bool TryParseCommitMessageSearchResult(string text, CommitMessageSearchQuery query, [NotNullWhen(true)] out CommitMessageSearchResult? searchResult)
-        {
-            searchResult = null;
-
-
-            var idx = text.IndexOf('\t');
-            int lastIdx = 0;
-
-            if (idx < 0)
-                return false;
-
-            var hash = text[lastIdx..idx];
-
-            idx = text.IndexOf('\t', lastIdx = idx + 1);
-
-            if (idx < 0)
-                return false;
-
-            var author = text[lastIdx..idx];
-
-            idx = text.IndexOf('\t', lastIdx = idx + 1);
-
-            if (idx < 0)
-                return false;
-
-            if (!DateTime.TryParse(text[lastIdx..idx], null, DateTimeStyles.RoundtripKind, out var date))
-                return false;
-
-            searchResult = new CommitMessageSearchResult(text[(idx + 1)..], hash, author, date, query);
-
-            return true;
-        }
-
-
-        private static bool TryParseFileContentSearchResult(string text, FileContentSearchQuery query, [NotNullWhen(true)] out FileContentSearchResult? searchResult)
-        {
-            const int MaxLineLength = 8_000;
-            searchResult = null;
-
-            var idx = text.IndexOf(':');
-            int lastIdx = 0;
-
-            if (idx < 0)
-                return false;
-
-            if (query.Branch != null)
-            {
-                if (text.Substring(0, idx) != query.Branch)
-                    return false;
-
-                idx = text.IndexOf(':', lastIdx = idx + 1);
-
-                if (idx < 0)
-                    return false;
-            }
-
-            var path = text[lastIdx..idx];
-
-            idx = text.IndexOf(':', lastIdx = idx + 1);
-
-            if (idx < 0)
-                return false;
-
-            if (!int.TryParse(text[lastIdx..idx], out int line))
-                return false;
-
-            idx = text.IndexOf(':', lastIdx = idx + 1);
-
-            if (idx < 0)
-                return false;
-
-            if (!int.TryParse(text[lastIdx..idx], out int column))
-                return false;
-
-            string trimmedLine = text[(idx + 1)..Math.Min(text.Length, MaxLineLength)].TrimStart();
-            searchResult = new FileContentSearchResult(trimmedLine, path, line, column, query);
-
-            return true;
-        }
-
         public static async Task<string?> GetFileContentAsync(string repository, string path, string? branchOrCommit)
         {
             var psi = new ProcessStartInfo("git")
@@ -250,7 +23,7 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("show");
             psi.ArgumentList.Add($"{branchOrCommit ?? "HEAD"}:{path}");
 
-            var process = Process.Start(psi);
+            using var process = Process.Start(psi);
 
             if (process == null)
                 return null;
@@ -283,7 +56,7 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("fetch");
             psi.ArgumentList.Add("--all");
 
-            var process = Process.Start(psi);
+            using var process = Process.Start(psi);
 
             if (process == null)
                 return;
@@ -304,7 +77,7 @@ namespace GitCodeSearch.Model
             return true;
         }
 
-        public static async Task<string[]> GetBranchesAsync(GitRepository repository)
+        public static async Task<IEnumerable<string>> GetBranchesAsync(GitRepository repository)
         {
             var psi = new ProcessStartInfo("git")
             {
@@ -316,7 +89,7 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("branch");
             psi.ArgumentList.Add("-r");
 
-            var process = Process.Start(psi);
+            using var process = Process.Start(psi);
 
             if (process == null)
                 return [];
@@ -332,7 +105,7 @@ namespace GitCodeSearch.Model
 
             await process.WaitForExitAsync();
 
-            return result.ToArray();
+            return result;
         }
 
         public static async Task<string> GetRemoteUrl(string repositoryPath, string? branch, bool stripGitExtension)
@@ -348,7 +121,7 @@ namespace GitCodeSearch.Model
             psi.ArgumentList.Add("get-url");
             psi.ArgumentList.Add(GetRemote(branch));
 
-            var process = Process.Start(psi);
+            using var process = Process.Start(psi);
 
             if (process == null)
                 return string.Empty;
@@ -372,20 +145,25 @@ namespace GitCodeSearch.Model
             return repositoryUrl;
         }
 
+        public static async Task<string> GetCommitRemotePath(string repositoryPath, string? branch, string commitHash)
+        {
+            string repositoryUrl = await GetRemoteUrl(repositoryPath, branch, true);
+
+            if(repositoryUrl.Contains("/gitlab/"))
+            {
+                return $@"{repositoryUrl}/-/commit/{commitHash}";
+            }
+            else
+            {
+                return $@"{repositoryUrl}/commit/{commitHash}";
+            }
+        }
 
         public static async Task<string> GetFileRemotePath(string repositoryPath, string? branch, string filePath)
         {
             string repositoryUrl = await GetRemoteUrl(repositoryPath, branch, true);
 
             return $@"{repositoryUrl}/blob/{GetBranch(branch)}/{filePath}";
-        }
-
-        private static string GetRegexArgument(this SearchQuery searchQuery)
-        {
-            if (searchQuery.IsRegex)
-                return "--perl-regexp";
-            else
-                return "--fixed-strings";
-        }
+        }  
     }
 }

@@ -1,10 +1,12 @@
 ﻿using GitCodeSearch.Model;
+using GitCodeSearch.Search;
 using GitCodeSearch.Views;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -16,8 +18,11 @@ namespace GitCodeSearch.ViewModels
         private static Window? owner_;
         private static readonly PreviewView previewView_ = new();
 
-        public SearchResultsViewModel()
+        public SearchResultsViewModel(string search, Action<string?> onRepositorySearch)
         {
+            OnRepositorySearch = onRepositorySearch;
+            Initialize(search);
+
             ShowPreviewCommand = new RelayCommand<FileContentSearchResult>(ShowPreviewAsync);
             OpenFileCommand = new RelayCommand<FileContentSearchResult>(OpenFile);
             ViewFileInRemoteCommand = new RelayCommand<FileContentSearchResult>(ViewFileInRemote);
@@ -25,13 +30,25 @@ namespace GitCodeSearch.ViewModels
             RevealInExplorerCommand = new RelayCommand<FileContentSearchResult>(RevealInExplorer);
             CopyHashCommand = new RelayCommand<CommitMessageSearchResult>(CopyHash);
             OpenSolutionCommand = new RelayCommand<FileContentSearchResult>(OpenSolution);
+            SearchRepositoryCommand = new RelayCommand<InactiveRepositorySearchResult>(SearchRepositoryAsync);
+            ShowCommitCommand = new RelayCommand<CommitMessageSearchResult>(ShowCommitAsync);
             tabVisibility_ = Settings.Current.UseTabs ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        public static void Initialize(Window owner)
+        [MemberNotNull(nameof(SearchEngine))]
+        public void Initialize(string search)
+        {
+            search_ = search;
+            Results.Clear();
+            SearchEngine = new SearchEngine(Search, Results, OnRepositorySearch);
+        }
+
+        public static void SetOwner(Window owner)
         {
             owner_ = owner;
         }
+
+        public SearchEngine SearchEngine { get; private set; }
 
         private string search_ = string.Empty;
         public string Search
@@ -61,10 +78,14 @@ namespace GitCodeSearch.ViewModels
         public ICommand RevealInExplorerCommand { get; }
         public ICommand CopyHashCommand { get; }
         public ICommand OpenSolutionCommand { get; }
+        public ICommand SearchRepositoryCommand { get; }
+        public ICommand ShowCommitCommand { get; }
+
+        public Action<string?> OnRepositorySearch { get; internal set; }
 
         private async Task ShowPreviewAsync(FileContentSearchResult searchResult)
         {
-            var content = await GitHelper.GetFileContentAsync(searchResult.Query.RepositoryPath, searchResult.Path, searchResult.Query.Branch);
+            var content = await GitHelper.GetFileContentAsync(searchResult.Query.Repository.Path, searchResult.Path, searchResult.Query.Branch);
 
             if (content != null && owner_ != null)
             {
@@ -89,9 +110,9 @@ namespace GitCodeSearch.ViewModels
         {
             try
             {
-                string url = await GitHelper.GetFileRemotePath(searchResult.Query.RepositoryPath, searchResult.Query.Branch, searchResult.Path);
+                string url = await GitHelper.GetFileRemotePath(searchResult.Query.Repository.Path, searchResult.Query.Branch, searchResult.Path);
 
-                Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = url });
+                using var _ = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = url });
             }
             catch (Exception e)
             {
@@ -147,6 +168,27 @@ namespace GitCodeSearch.ViewModels
             }
 
             MessageBox.Show($"There is no solution file in parent directories");
+        }
+
+        private async Task SearchRepositoryAsync(InactiveRepositorySearchResult searchResult, CancellationToken token)
+        {
+            GitRepository repository = searchResult.Query.Repository;
+            int index = Results.IndexOf(searchResult); 
+            await SearchEngine.SearchRepositoryAsync(repository, index, token);
+        }
+
+        private async void ShowCommitAsync(CommitMessageSearchResult searchResult)
+        {
+            string url = await GitHelper.GetCommitRemotePath(searchResult.Query.Repository.Path, searchResult.Query.Branch, searchResult.LongHash);
+
+            try
+            {
+                using var _ = Process.Start(new ProcessStartInfo { UseShellExecute = true, FileName = url });
+            }
+            catch
+            {
+
+            }
         }
     }
 }

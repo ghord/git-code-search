@@ -1,4 +1,4 @@
-﻿using GitCodeSearch.Model;
+﻿using GitCodeSearch.Search;
 
 namespace GitCodeSearch.ViewModels
 {

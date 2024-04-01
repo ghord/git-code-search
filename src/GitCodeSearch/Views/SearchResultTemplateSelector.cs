@@ -1,4 +1,4 @@
-﻿using GitCodeSearch.Model;
+﻿using GitCodeSearch.Search;
 using System.Windows;
 using System.Windows.Controls;
 

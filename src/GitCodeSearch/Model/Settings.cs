@@ -2,19 +2,29 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace GitCodeSearch.Model
 {
+    public enum SearchType
+    {
+        FileContent = 0,
+        CommitMessage = 1
+    }
+
     public class Settings
     {
-        public List<GitRepository> GitRepositores { get; set; } = new();
+        public List<GitRepository> GitRepositores { get; set; } = [];
 
         public string? Branch { get; set; }
+
+        [JsonIgnore]
+        public string Pattern { get; set; } = "*";
+
+        [JsonIgnore]
+        public SearchType SearchType { get; set; }
 
         public bool IsCaseSensitive { get; set; }
 
@@ -24,7 +34,7 @@ namespace GitCodeSearch.Model
 
         public string PreviewTheme { get; set; } = "vs";
 
-        public SearchHistory SearchHistory { get; set; } = new();
+        public SearchHistory SearchHistory { get; set; } = [];
 
         public bool UseTabs { get; set; }
 
@@ -34,7 +44,7 @@ namespace GitCodeSearch.Model
 
         public static async Task LoadAsync()
         {
-            Current = await LoadAsync(DefaultPath) ?? new Settings();
+            Current = await LoadAsync(DefaultPath);
         }
 
         public static async Task SaveAsync()
@@ -48,18 +58,18 @@ namespace GitCodeSearch.Model
             await JsonSerializer.SerializeAsync(stream, this);
         }
 
-        private async static Task<Settings?> LoadAsync(string path)
+        private async static Task<Settings> LoadAsync(string path)
         {
             try
             {
                 using var stream = File.OpenRead(path);
                 var result = await JsonSerializer.DeserializeAsync<Settings>(stream);
 
-                return result;
+                return result ?? new Settings();
             }
             catch
             {
-                return null;
+                return new Settings();
             }
         }
     }
