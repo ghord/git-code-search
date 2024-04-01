@@ -14,19 +14,9 @@ using System.Windows.Input;
 
 namespace GitCodeSearch.ViewModels
 {
-    public enum SearchType
-    {
-        FileContent = 0,
-        CommitMessage = 1
-    }
-
     public class MainViewModel : ViewModelBase
     {
-        private string search_ = string.Empty;
         private readonly Window owner_;
-        private string? currentRepository_;
-        private SearchType searchType_;
-        private string pattern_ = "*";
         private ObservableCollection<string> searchHistory_ = new(Settings.Current.SearchHistory);
         private ObservableCollection<SearchResultsViewModel> searchResults_ = new ObservableCollection<SearchResultsViewModel>();
         private int activeTabIndex_ = -1;
@@ -42,26 +32,28 @@ namespace GitCodeSearch.ViewModels
             CloseOtherTabsCommand = new RelayCommand<SearchResultsViewModel>(CloseOtherTabs, CanExecuteCloseOtherTabs);
             CloseAllTabsCommand = new RelayCommand(CloseAllTabs);
 
-            SearchResultsViewModel.Initialize(owner_);
+            SearchResultsViewModel.SetOwner(owner_);
             if (!Settings.Current.UseTabs)
             {
                 AddSearchResults();
             }
         }
 
-        public ObservableCollection<string?> Branches { get; } = new ObservableCollection<string?> { null };
+        public ObservableCollection<string?> Branches { get; } = [null];
 
 
+        private string search_ = string.Empty;
         public string Search
         {
-            get { return search_; }
-            set { SetField(ref search_, value); }
+            get => search_;
+            set => SetField(ref search_, value);
         }
 
+        private string? currentRepository_;
         public string? CurrentRepository
         {
-            get { return currentRepository_; }
-            set { SetField(ref currentRepository_, value); }
+            get => currentRepository_;
+            set => SetField(ref currentRepository_, value);
         }
 
 
@@ -98,14 +90,22 @@ namespace GitCodeSearch.ViewModels
 
         public SearchType SearchType
         {
-            get { return searchType_; }
-            set { SetField(ref searchType_, value); }
+            get => Settings.Current.SearchType;
+            set
+            {
+                Settings.Current.SearchType = value;
+                RaisePropertyChanged();
+            }
         }
 
         public string Pattern
         {
-            get { return pattern_; }
-            set { SetField(ref pattern_, value); }
+            get => Settings.Current.Pattern;
+            set
+            {
+                Settings.Current.Pattern = value;
+                RaisePropertyChanged();
+            }
         }
 
         public ObservableCollection<string> SearchHistory
@@ -241,7 +241,7 @@ namespace GitCodeSearch.ViewModels
 
         private SearchResultsViewModel AddSearchResults()
         {
-            var searchResults = new SearchResultsViewModel { Search = search_ };
+            var searchResults = new SearchResultsViewModel(Search, repositoryPath => CurrentRepository = repositoryPath);
             SearchResults.Add(searchResults);
             return searchResults;
         }
@@ -249,8 +249,7 @@ namespace GitCodeSearch.ViewModels
         private SearchResultsViewModel ReuseSearchResults(int index)
         {
             SearchResultsViewModel searchResults = SearchResults[index];
-            searchResults.Search = search_;
-            searchResults.Results.Clear();
+            searchResults.Initialize(search_);
             return searchResults;
         }
 
@@ -259,93 +258,10 @@ namespace GitCodeSearch.ViewModels
             if (string.IsNullOrEmpty(Search))
                 return;
 
+            UpdateSearchHistory(search_);
+
             SearchResultsViewModel searchResults = GetOrAddSearchResults();
-            string search = search_;
-
-            UpdateSearchHistory(search);
-
-            foreach (var repository in Settings.Current.GitRepositores.OrderByDescending(GitHelper.IsActiveRepository))
-            {
-                CurrentRepository = repository.Path;
-
-                if (!GitHelper.IsActiveRepository(repository) && !Settings.Current.ShowInactiveRepositoriesInSearchResult)
-                {
-                    continue;
-                }
-
-                switch (searchType_)
-                {
-                    case SearchType.FileContent:
-                        {
-                            var query = new FileContentSearchQuery(search, Pattern, Branch, repository.Path, IsCaseSensitive, IsRegex);
-
-                            if (GitHelper.IsActiveRepository(repository))
-                            {
-                                await foreach (var result in GitHelper.SearchFileContentAsync(query, token).WithCancellation(token))
-                                {
-                                    searchResults.Results.Add(result);
-                                }
-                            }
-                            else
-                            {
-                                var inactiveQuery = new InactiveRepositorySearchQuery(query);
-
-                                int count = 0;
-                                await foreach (var result in GitHelper.SearchFileContentAsync(query).WithCancellation(token))
-                                {
-                                    count++;
-                                }
-
-                                if (count > 0 && !token.IsCancellationRequested)
-                                {
-                                    searchResults.Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
-                                }
-                            }
-                            break;
-                        }
-                    case SearchType.CommitMessage:
-                        {
-                            var query = new CommitMessageSearchQuery(search, Branch, repository.Path, IsCaseSensitive, IsRegex);
-
-
-                            if (GitHelper.IsActiveRepository(repository))
-                            {
-
-                                await foreach (var result in GitHelper.SearchCommitMessageAsync(query, token).WithCancellation(token))
-                                {
-                                    if (token.IsCancellationRequested)
-                                        break;
-                                    searchResults.Results.Add(result);
-                                }
-                            }
-                            else
-                            {
-                                var inactiveQuery = new InactiveRepositorySearchQuery(query);
-
-                                int count = 0;
-                                await foreach (var result in GitHelper.SearchCommitMessageAsync(query).WithCancellation(token))
-                                {
-                                    count++;
-                                    break;
-                                }
-
-                                if (count > 0 && !token.IsCancellationRequested)
-                                {
-                                    searchResults.Results.Add(new InactiveRepositorySearchResult(inactiveQuery, count));
-                                }
-                            }
-
-
-                            break;
-                        }
-                }
-
-                if (token.IsCancellationRequested)
-                    break;
-
-            }
-
-            CurrentRepository = null;
+            await searchResults.SearchEngine.SearchAsync(token);
         }
 
         private void UpdateSearchHistory(string search)
