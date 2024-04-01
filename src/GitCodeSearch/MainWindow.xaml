@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:GitCodeSearch" 
+        xmlns:m="clr-namespace:GitCodeSearch.Model" 
         xmlns:vm="clr-namespace:GitCodeSearch.ViewModels"
         xmlns:views="clr-namespace:GitCodeSearch.Views"
         xmlns:converters="clr-namespace:GitCodeSearch.Converters"
@@ -16,37 +16,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:NullReplaceConverter x:Key="NullReplaceConverter" />
         <converters:EnumerableNullReplaceConverter x:Key="EnumerableNullReplaceConverter"/>
-        <converters:EnumConverter EnumType="{x:Type vm:SearchType}" x:Key="SearchTypeConverter" />
-        <views:SearchResultTemplateSelector x:Key="SearchResultTemplateSelector">
-            <views:SearchResultTemplateSelector.FileContentTemplate>
-                <DataTemplate>
-                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
-                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
-                        <Hyperlink ToolTip="{Binding Path}" ToolTipService.ShowDuration="60000">
-                            <Run Text="{Binding ShortPath, Mode=OneWay}"  />
-                        </Hyperlink>
-                        <Run Text="{Binding Text, Mode=OneWay}" />
-                    </TextBlock>
-                </DataTemplate>
-            </views:SearchResultTemplateSelector.FileContentTemplate>
-            <views:SearchResultTemplateSelector.CommitMessageTemplate>
-                <DataTemplate>
-                    <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
-                        <Run Text="{Binding Hash, Mode=OneWay}" />
-                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Message, Mode=OneWay}" />
-                    </TextBlock>
-                </DataTemplate>
-            </views:SearchResultTemplateSelector.CommitMessageTemplate>
-            <views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
-                <DataTemplate>
-                    <TextBlock Foreground="Silver" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap">
-                        <Run Text="{Binding Query.Repository, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Text, Mode=OneWay}" />
-                    </TextBlock>
-                </DataTemplate>
-            </views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
-        </views:SearchResultTemplateSelector>
+        <converters:EnumConverter EnumType="{x:Type m:SearchType}" x:Key="SearchTypeConverter" />
     </Window.Resources>
     <Grid FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
         <Grid.RowDefinitions>

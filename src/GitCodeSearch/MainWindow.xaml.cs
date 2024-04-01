@@ -19,7 +19,7 @@ namespace GitCodeSearch
             LoadDataContextAsync().WaitAndDispatch();
         }
 
-        public async Task LoadDataContextAsync()
+        private async Task LoadDataContextAsync()
         {
             await Settings.LoadAsync();
             var viewModel = new MainViewModel(this);

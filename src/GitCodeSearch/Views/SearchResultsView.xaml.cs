@@ -1,4 +1,5 @@
-﻿using GitCodeSearch.ViewModels;
+﻿using GitCodeSearch.Search;
+using GitCodeSearch.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -19,7 +20,20 @@ namespace GitCodeSearch.Views
         {
             var lbi = (ListBoxItem)sender;
             var viewModel = (SearchResultsViewModel)DataContext;
-            viewModel.ShowPreviewCommand.Execute(lbi.DataContext);
+            switch (lbi.DataContext)
+            {
+                case FileContentSearchResult fileContentSearchResult:
+                    viewModel.ShowPreviewCommand.Execute(fileContentSearchResult);
+                    break;
+
+                case CommitMessageSearchResult commitMessageSearchResult:
+                    viewModel.ShowCommitCommand.Execute(commitMessageSearchResult);
+                    break;
+
+                case InactiveRepositorySearchResult inactiveRepositorySearchResult:
+                    viewModel.SearchRepositoryCommand.Execute(inactiveRepositorySearchResult);
+                    break;
+            }
         }
 
         private void DataGrid_RequestBringIntoView(object sender, RequestBringIntoViewEventArgs e)

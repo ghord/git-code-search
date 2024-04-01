@@ -32,6 +32,8 @@ namespace GitCodeSearch.ViewModels
         public string PreviewTheme { get; set; }
         public SearchHistory SearchHistory { get; set; }
         public bool UseTabs { get; set; }
+        public SearchType SearchType { get; set; }
+        public string Pattern { get; set; }
 
         public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
 
@@ -52,7 +54,7 @@ namespace GitCodeSearch.ViewModels
             }
         }
 
-        [MemberNotNull(nameof(GitRepositories), nameof(SearchHistory), nameof(PreviewTheme))]
+        [MemberNotNull(nameof(GitRepositories), nameof(SearchHistory), nameof(PreviewTheme), nameof(Pattern))]
         private void Initialize(Settings settings)
         {
             GitRepositories = new GitRepositoriesViewModel(settings.GitRepositores);
@@ -63,6 +65,8 @@ namespace GitCodeSearch.ViewModels
             PreviewTheme = settings.PreviewTheme;
             SearchHistory = settings.SearchHistory;
             UseTabs = settings.UseTabs;
+            SearchType = settings.SearchType;
+            Pattern = settings.Pattern;
         }
 
         internal async Task ApplySettings()
@@ -77,6 +81,8 @@ namespace GitCodeSearch.ViewModels
                 PreviewTheme = PreviewTheme,
                 SearchHistory = SearchHistory,
                 UseTabs = UseTabs,
+                SearchType = SearchType,
+                Pattern = Pattern
             };
             await Settings.SaveAsync();
         }
