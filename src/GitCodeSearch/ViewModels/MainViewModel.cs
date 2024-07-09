@@ -18,7 +18,7 @@ namespace GitCodeSearch.ViewModels
     {
         private readonly Window owner_;
         private ObservableCollection<string> searchHistory_ = new(Settings.Current.SearchHistory);
-        private ObservableCollection<SearchResultsViewModel> searchResults_ = new ObservableCollection<SearchResultsViewModel>();
+        private ObservableCollection<SearchResultsViewModel> searchResults_ = [];
         private int activeTabIndex_ = -1;
 
         public MainViewModel(Window owner)
