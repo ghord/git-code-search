@@ -90,7 +90,7 @@ namespace GitCodeSearch.ViewModels
             if (content != null && owner_ != null)
             {
                 previewView_.DataContext = new PreviewViewModel(searchResult, content);
-                DialogHelper.ShowDialog(previewView_, searchResult.Path, owner_);
+                DialogHelper.ShowWindow(previewView_, searchResult.Path, owner_);
             }
         }
 
