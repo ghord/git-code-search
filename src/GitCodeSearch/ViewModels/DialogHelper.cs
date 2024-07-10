@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Accessibility;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -37,9 +38,15 @@ namespace GitCodeSearch.ViewModels
                     WindowStartupLocation = WindowStartupLocation.CenterOwner
                 };
                 windows_[view] = window;
+
+                window.Closed += (o, e) =>
+                {
+                    windows_.Remove(view);
+                };
             }
 
             window.Show();
+           
         }
     }
 }
