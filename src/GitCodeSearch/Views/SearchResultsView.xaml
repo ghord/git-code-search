@@ -76,7 +76,7 @@
 
             <views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
                 <DataTemplate>
-                    <TextBlock Foreground="Silver" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
+                    <TextBlock Foreground="DarkGray" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
                         <Run Text="{Binding Text, Mode=OneWay}" />
@@ -90,6 +90,16 @@
                     </TextBlock>
                 </DataTemplate>
             </views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
+
+            <views:SearchResultTemplateSelector.MissingBranchRepositoryTemplate>
+                <DataTemplate>
+                    <TextBlock Foreground="DarkGray" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
+                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                        <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
+                        <Run Text="{Binding Text, Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchResultTemplateSelector.MissingBranchRepositoryTemplate>
 
         </views:SearchResultTemplateSelector>
 

@@ -44,7 +44,13 @@ namespace GitCodeSearch.Search
                     int count = 0;
                     await foreach (var result in CreateSearch(query).SearchAsync(cancellationToken))
                     {
-                        count++;
+                        if(result is not MissingBranchRepositorySearchResult)
+                            count++;
+                        else
+                        {
+                            Results.Add(result);
+                            break;
+                        }
                     }
 
                     if (count > 0 && !cancellationToken.IsCancellationRequested)

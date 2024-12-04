@@ -43,4 +43,17 @@ namespace GitCodeSearch.Search
             return $"{Count} result{(Count == 1 ? "" : "s")} (inactive)";
         }
     }
+
+    public record MissingBranchRepositorySearchResult(SearchQuery Query) : SearchResult<SearchQuery>(Query)
+    {
+        public string Text => GetText();
+
+        public override string GetText()
+        {
+            
+            return $"Missing branch {Query.Branch} {(Query.Repository.Active ? "" : "(inactive)")}";
+        }
+    }
+
+
 }

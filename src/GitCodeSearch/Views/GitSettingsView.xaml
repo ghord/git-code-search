@@ -38,9 +38,12 @@
             </Grid>
 
             <!-- Show inactive repositories checkbox -->
-            <StackPanel DockPanel.Dock="Bottom" Margin="4" Orientation="Horizontal">
-                <CheckBox Content="Show inactive repositories in search results"
+            <StackPanel Orientation="Vertical" DockPanel.Dock="Bottom" Margin="4">
+                <CheckBox Margin="2" Content="Show inactive repositories in search results"
                           IsChecked="{Binding ShowInactiveRepositoriesInSearchResult}"></CheckBox>
+                <CheckBox Margin="2" Content="Show warnings for branches that do not exist"
+                          IsChecked="{Binding WarnOnMissingBranch}" />
+
             </StackPanel>
 
             <!-- Repositories grid -->

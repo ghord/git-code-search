@@ -1,9 +1,12 @@
-﻿using System;
+﻿using GitCodeSearch.Model;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 
 namespace GitCodeSearch.Search
 {
@@ -27,15 +30,29 @@ namespace GitCodeSearch.Search
             {
                 WorkingDirectory = Query.Repository.Path,
                 RedirectStandardOutput = true,
-                CreateNoWindow = true
+                RedirectStandardError = true,
+                CreateNoWindow = true,
             };
 
             AddArguments(psi.ArgumentList);
 
             using var process = Process.Start(psi);
 
+
             if (process == null)
                 yield break;
+
+            using var _ = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    process.Kill();
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine(e);
+                }
+            });
 
             var reader = process.StandardOutput;
 
@@ -49,6 +66,14 @@ namespace GitCodeSearch.Search
 
                 if (TryParseSearchResult(line, out var searchResult))
                     yield return searchResult;
+            }
+
+            if (Settings.Current.WarnOnMissingBranch)
+            {
+                if (Query.Branch != null && process.ExitCode != 0 && process.StandardError.ReadToEnd().Contains(Query.Branch))
+                {
+                    yield return new MissingBranchRepositorySearchResult(Query);
+                }
             }
         }
 

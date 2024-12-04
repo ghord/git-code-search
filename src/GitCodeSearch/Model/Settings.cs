@@ -38,6 +38,8 @@ namespace GitCodeSearch.Model
 
         public bool UseTabs { get; set; }
 
+        public bool WarnOnMissingBranch { get; set; } = true;
+
         public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
 
         public static Settings Current { get; set; } = new Settings();

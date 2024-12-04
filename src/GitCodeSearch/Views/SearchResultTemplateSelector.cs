@@ -12,6 +12,8 @@ namespace GitCodeSearch.Views
 
         public DataTemplate? InactiveRepositoryTemplate { get; set; }
 
+        public DataTemplate? MissingBranchRepositoryTemplate { get; set; }
+
         public override DataTemplate? SelectTemplate(object item, DependencyObject container)
         {
             return item switch
@@ -19,6 +21,7 @@ namespace GitCodeSearch.Views
                 FileContentSearchResult => FileContentTemplate,
                 CommitMessageSearchResult => CommitMessageTemplate,
                 InactiveRepositorySearchResult => InactiveRepositoryTemplate,
+                MissingBranchRepositorySearchResult => MissingBranchRepositoryTemplate,
                 _ => base.SelectTemplate(item, container)
             };
         }

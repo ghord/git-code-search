@@ -35,6 +35,8 @@ namespace GitCodeSearch.ViewModels
         public SearchType SearchType { get; set; }
         public string Pattern { get; set; }
 
+        public bool WarnOnMissingBranch { get; set; }
+
         public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
 
         public static IEnumerable<string> PreviewThemes
@@ -67,6 +69,7 @@ namespace GitCodeSearch.ViewModels
             UseTabs = settings.UseTabs;
             SearchType = settings.SearchType;
             Pattern = settings.Pattern;
+            WarnOnMissingBranch = settings.WarnOnMissingBranch;
         }
 
         internal async Task ApplySettings()
@@ -82,7 +85,8 @@ namespace GitCodeSearch.ViewModels
                 SearchHistory = SearchHistory,
                 UseTabs = UseTabs,
                 SearchType = SearchType,
-                Pattern = Pattern
+                Pattern = Pattern,
+                WarnOnMissingBranch = WarnOnMissingBranch
             };
             await Settings.SaveAsync();
         }
