@@ -1,12 +1,18 @@
 ﻿using GitCodeSearch.Model;
-using GitCodeSearch.Utilities;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
+using System.IO;
+using System.Linq;
+using System.Windows.Input;
 
-namespace GitCodeSearch.ViewModels
+#pragma warning disable CA1416 // This call site is reachable on all platforms. '{0}' is only supported on: 'Windows' 7.0 and later.
+
+namespace GitCodeSearch.ViewModels;
+
+public class SettingsViewModel : ViewModelBase
 {
     public enum SettingsSection
     {
@@ -15,80 +21,111 @@ namespace GitCodeSearch.ViewModels
 
         [Description("User interface")]
         UserInterface,
+
+        [Description("Branches")]
+        Branches
     }
 
-    public class SettingsViewModel : ViewModelBase
+    public SettingsViewModel()
     {
-        public SettingsViewModel()
+        AddRepositoriesCommand = new RelayCommand(AddRepositories);
+        RemoveRepositoriesCommand = new RelayCommand<IList>(RemoveRepositories, CanRemoveRepositories);
+        ActivateAllRepositoriesCommand = new RelayCommand<bool?>(ActivateAllRepositories);
+    }
+
+    // Git section
+    public RepositoriesViewModel Repositories { get; set; } = new RepositoriesViewModel(Settings.Current.Repositories);
+    public bool ShowInactiveRepositoriesInSearchResult { get; set; } = Settings.Current.ShowInactiveRepositoriesInSearchResult;
+    public bool WarnOnMissingBranch { get; set; } = Settings.Current.WarnOnMissingBranch;
+    public ICommand AddRepositoriesCommand { get; }
+    public ICommand RemoveRepositoriesCommand { get; }
+    public ICommand ActivateAllRepositoriesCommand { get; }
+
+    // User interface section
+    public string PreviewTheme { get; set; } = Settings.Current.PreviewTheme;
+    public bool UseTabs { get; set; } = Settings.Current.UseTabs;
+
+    // Branches section
+    public string FavouriteBranches { get; set; } = string.Join("\r\n", Settings.Current.FavouriteBranches);
+    public string InvalidBranchRegex { get; set; } = Settings.Current.InvalidBranchRegex;
+
+    public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
+
+    internal void ApplySettings()
+    {
+        Settings.Current.Repositories = Repositories;
+        Settings.Current.ShowInactiveRepositoriesInSearchResult = ShowInactiveRepositoriesInSearchResult;
+        Settings.Current.WarnOnMissingBranch = WarnOnMissingBranch;
+        
+        Settings.Current.PreviewTheme = PreviewTheme;
+        Settings.Current.UseTabs = UseTabs;
+
+        Settings.Current.FavouriteBranches = FavouriteBranches
+            .Split("\r\n")
+            .Where(b => !string.IsNullOrEmpty(b))
+            .Distinct()
+            .Select(b => new Branch(b))
+            .ToList();
+        Settings.Current.InvalidBranchRegex = InvalidBranchRegex;
+
+        Settings.Save();
+    }
+
+    private void AddRepositories()
+    {
+        CommonOpenFileDialog dialog = new() { IsFolderPicker = true };
+        if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
         {
-            Initialize(Settings.Current);
-        }
-
-        public GitRepositoriesViewModel GitRepositories { get; set; }
-        public string? Branch { get; set; }
-        public bool IsCaseSensitive { get; set; }
-        public bool IsRegex { get; set; }
-        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
-        public string PreviewTheme { get; set; }
-        public SearchHistory SearchHistory { get; set; }
-        public bool UseTabs { get; set; }
-        public SearchType SearchType { get; set; }
-        public string Pattern { get; set; }
-
-        public bool WarnOnMissingBranch { get; set; }
-
-        public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
-
-        public static IEnumerable<string> PreviewThemes
-        {
-            get
+            if (dialog.FileName != null)
             {
-                yield return "vs";
-                yield return "vs-dark";
-                yield return "hc-black";
-                yield return "monokai";
-                yield return "github-dark";
-                yield return "github-light";
-                yield return "clouds";
-                yield return "clouds-midnight";
-                yield return "xcode-default";
-                yield return "pastels-on-dark";
+                var gitRepositories = Repositories
+                    .Select(g => g.Path.ToLowerInvariant())
+                    .ToHashSet();
+
+                List<string> repositories = [];
+                FindRepositories(ref repositories, dialog.FileName);
+                foreach (string repositoryPath in repositories)
+                {
+                    if (!gitRepositories.Contains(repositoryPath.ToLowerInvariant()))
+                        Repositories.Add(new RepositoryViewModel(repositoryPath));
+                }
             }
         }
+    }
 
-        [MemberNotNull(nameof(GitRepositories), nameof(SearchHistory), nameof(PreviewTheme), nameof(Pattern))]
-        private void Initialize(Settings settings)
+    private void RemoveRepositories(IList selectedItems)
+    {
+        foreach (var repository in selectedItems.Cast<RepositoryViewModel>().ToList())
         {
-            GitRepositories = new GitRepositoriesViewModel(settings.GitRepositores);
-            Branch = settings.Branch;
-            IsCaseSensitive = settings.IsCaseSensitive;
-            IsRegex = settings.IsRegex;
-            ShowInactiveRepositoriesInSearchResult = settings.ShowInactiveRepositoriesInSearchResult;
-            PreviewTheme = settings.PreviewTheme;
-            SearchHistory = settings.SearchHistory;
-            UseTabs = settings.UseTabs;
-            SearchType = settings.SearchType;
-            Pattern = settings.Pattern;
-            WarnOnMissingBranch = settings.WarnOnMissingBranch;
+            Repositories.Remove(repository);
         }
+    }
 
-        internal async Task ApplySettings()
+    private bool CanRemoveRepositories(IList selectedItems)
+    {
+        return selectedItems.Count > 0;
+    }
+
+    private void ActivateAllRepositories(bool? active)
+    {
+        foreach (var repository in Repositories)
         {
-            Settings.Current = new Settings
+            repository.Active = active == true;
+        }
+    }
+
+    private static void FindRepositories(ref List<string> repositories, string filePath)
+    {
+        if (Directory.Exists(Path.Combine(filePath, ".git")))
+        {
+            repositories.Add(filePath);
+        }
+        else
+        {
+            foreach (var directory in Directory.GetDirectories(filePath))
             {
-                GitRepositores = GitRepositories.ToList(),
-                Branch = Branch,
-                IsCaseSensitive = IsCaseSensitive,
-                IsRegex = IsRegex,
-                ShowInactiveRepositoriesInSearchResult = ShowInactiveRepositoriesInSearchResult,
-                PreviewTheme = PreviewTheme,
-                SearchHistory = SearchHistory,
-                UseTabs = UseTabs,
-                SearchType = SearchType,
-                Pattern = Pattern,
-                WarnOnMissingBranch = WarnOnMissingBranch
-            };
-            await Settings.SaveAsync();
+                FindRepositories(ref repositories, directory);
+            }
         }
     }
 }

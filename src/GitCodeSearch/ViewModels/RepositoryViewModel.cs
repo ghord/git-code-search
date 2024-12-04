@@ -1,76 +1,54 @@
 ﻿using GitCodeSearch.Model;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
-namespace GitCodeSearch.ViewModels
+namespace GitCodeSearch.ViewModels;
+
+public class RepositoryViewModel : ViewModelBase
 {
-    public class GitRepositoryViewModel : ViewModelBase
+    public RepositoryViewModel(string path, bool active = false)
     {
-        public GitRepositoryViewModel() 
-        {
-            path_ = string.Empty;
-        }
+        Path = path;
+        Active = active;
+    }
 
-        public GitRepositoryViewModel(GitRepository gitRepository)
-        {
-            active_ = gitRepository.Active;
-            path_= gitRepository.Path;
-        }
+    public RepositoryViewModel(Repository repository)
+    {
+        Active = repository.Active;
+        Path = repository.Path;
+    }
 
-        private bool active_;
-        public bool Active
-        {
-            get => active_;
-            set
-            {
-                if (active_ != value)
-                {
-                    active_ = value;
-                    RaisePropertyChanged();
-                }
-            }
-        }
+    public bool Active
+    {
+        get => field;
+        set => SetField(ref field, value);
+    }
 
-        private string path_;
-        public string Path
+    public string Path
+    {
+        get => field;
+        set => SetField(ref field, value);
+    }
+}
+
+public class RepositoriesViewModel : ObservableCollection<RepositoryViewModel>
+{
+    public RepositoriesViewModel(List<Repository> repositories)
+    {
+        foreach(var repository in repositories)
         {
-            get => path_;
-            set
-            {
-                if (path_ != value)
-                {
-                    path_ = value;
-                    RaisePropertyChanged();
-                }
-            }
+            Add(new RepositoryViewModel(repository));
         }
     }
 
-    public class GitRepositoriesViewModel : ObservableCollection<GitRepositoryViewModel>
+    public static implicit operator Repositories(RepositoriesViewModel viewModel)
     {
-        public GitRepositoriesViewModel(List<GitRepository> gitRepositories)
+        var repositories = new Repositories();
+        foreach (var repository in viewModel)
         {
-            foreach(var repository in gitRepositories)
-            {
-                Add(new GitRepositoryViewModel(repository));
-            }
+            repositories.Add(new Repository(repository.Path, repository.Active));
         }
-
-        public List<GitRepository> ToList()
-        {
-            var list = new List<GitRepository>();
-
-            foreach(var repositoryViewModel in this)
-            {
-                list.Add(new GitRepository 
-                { 
-                    Active = repositoryViewModel.Active, 
-                    Path = repositoryViewModel.Path 
-                });
-            }
-
-            return list;
-        }
+        return repositories;
     }
-
 }

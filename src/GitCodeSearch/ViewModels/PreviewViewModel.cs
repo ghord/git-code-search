@@ -1,10 +1,9 @@
-﻿using GitCodeSearch.Search;
+﻿using GitCodeSearch.Search.Result;
 
-namespace GitCodeSearch.ViewModels
+namespace GitCodeSearch.ViewModels;
+
+public class PreviewViewModel(FileContentSearchResult searchResult, string content) : ViewModelBase
 {
-    public class PreviewViewModel(FileContentSearchResult searchResult, string content) : ViewModelBase
-    {
-        public FileContentSearchResult SearchResult { get; } = searchResult;
-        public string Content { get; } = content;
-    }
+    public FileContentSearchResult SearchResult { get; } = searchResult;
+    public string Content { get; } = content;
 }

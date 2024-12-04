@@ -2,31 +2,30 @@
 using System.ComponentModel;
 using System.Linq;
 
-namespace GitCodeSearch.Utilities
+namespace GitCodeSearch.Utilities;
+
+internal static class EnumExtensions
 {
-    internal static class EnumExtensions
+    public static string GetDescription(this Enum enumValue)
     {
-        public static string GetDescription(this Enum enumValue)
+        return enumValue.GetAttribute<DescriptionAttribute>().Description;
+    }
+
+    private static T GetAttribute<T>(this Enum enumValue) where T : Attribute
+    {
+        Type enumType = enumValue.GetType();
+        var fieldInfo = enumType.GetField(enumValue.ToString());
+        if (fieldInfo == null)
         {
-            return enumValue.GetAttribute<DescriptionAttribute>().Description;
+            throw new Exception($"Can not get FieldInfo for {enumType.Name}.{enumValue}");
         }
 
-        private static T GetAttribute<T>(this Enum enumValue) where T : Attribute
+        var attributes = (T[])fieldInfo.GetCustomAttributes(typeof(T), false);
+        if (attributes.Length == 0)
         {
-            Type enumType = enumValue.GetType();
-            var fieldInfo = enumType.GetField(enumValue.ToString());
-            if (fieldInfo == null)
-            {
-                throw new Exception($"Can not get FieldInfo for {enumType.Name}.{enumValue}");
-            }
-
-            var attributes = (T[])fieldInfo.GetCustomAttributes(typeof(T), false);
-            if (attributes.Length == 0)
-            {
-                throw new Exception($"{enumType.Name}.{enumValue} do not have {typeof(T).Name} attribute");
-            }
-
-            return attributes.First();
+            throw new Exception($"{enumType.Name}.{enumValue} do not have {typeof(T).Name} attribute");
         }
+
+        return attributes.First();
     }
 }

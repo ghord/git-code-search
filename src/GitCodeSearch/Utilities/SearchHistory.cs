@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace GitCodeSearch.Utilities
+namespace GitCodeSearch.Utilities;
+
+public class SearchHistory : List<string>
 {
-    public class SearchHistory : List<string>
+    [JsonIgnore]
+    public new int Capacity { get; set; } = 30;
+
+    public new void Add(string item)
     {
-        [JsonIgnore]
-        public new int Capacity { get; set; } = 30;
+        Remove(item);
+        Insert(0, item);
 
-        public new void Add(string item)
+        if(Count > Capacity)
         {
-            Remove(item);
-            Insert(0, item);
-
-            if(Count > Capacity)
-            {
-                RemoveRange(Capacity, Count - Capacity);
-            }
+            RemoveRange(Capacity, Count - Capacity);
         }
     }
 }

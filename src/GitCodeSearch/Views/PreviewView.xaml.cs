@@ -1,5 +1,5 @@
 ﻿using GitCodeSearch.Model;
-using GitCodeSearch.Search;
+using GitCodeSearch.Search.Result;
 using GitCodeSearch.ViewModels;
 using Microsoft.Web.WebView2.Core;
 using System;
@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Windows;
 using System.Windows.Controls;
+
+#pragma warning disable CA1416 // Validate platform compatibility
 
 namespace GitCodeSearch.Views
 {
@@ -24,7 +26,7 @@ namespace GitCodeSearch.Views
 
         private CoreWebView2Environment? _environment;
 
-        async void InitializeAsync()
+        private async void InitializeAsync()
         {
             _environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(Path.GetTempPath(), "GitCodeSearch"));
             await WebView.EnsureCoreWebView2Async(_environment);
@@ -56,7 +58,7 @@ namespace GitCodeSearch.Views
             string content = HttpUtility.JavaScriptStringEncode(viewModel.Content);
 
             return $@"loadContentToEditor('{language}', {searchResult.Line}, {searchResult.Column}, 
-                                           {searchResult.Query.Expression.Length}, '{Settings.Current.PreviewTheme}', '{content}')";
+                                           {searchResult.Expression.Length}, '{Settings.Current.PreviewTheme}', '{content}')";
         }
 
         private static string DetectLanguageFromFileName(string fullPath)

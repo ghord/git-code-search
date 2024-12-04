@@ -10,13 +10,18 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d" x:Name="Root"
-        Title="Git Code Search" Height="768" Width="1024"
-        Closed="Window_Closed">
+        Title="Git Code Search" Height="768" Width="1024">
     <Window.Resources>
+        
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:NullReplaceConverter x:Key="NullReplaceConverter" />
-        <converters:EnumerableNullReplaceConverter x:Key="EnumerableNullReplaceConverter"/>
         <converters:EnumConverter EnumType="{x:Type m:SearchType}" x:Key="SearchTypeConverter" />
+        <DataTemplate x:Key="BranchTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="★" FontFamily="Segoe UI Symbol" FontSize="13"
+                           Visibility="{Binding IsFavourite, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{Binding}" Margin="5,0,0,0" />
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
     <Grid FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
         <Grid.RowDefinitions>
@@ -28,31 +33,41 @@
 
         <DockPanel LastChildFill="True" Margin="6,2">
             <Button DockPanel.Dock="Right"  Margin="2" Grid.Column="1" Padding="5,2" MinWidth="75"
-                    Content="Search" IsDefault="True" TabIndex="2"
-                    Click="Search_Click" Width="75" />
+                    Content="Search" IsDefault="True" TabIndex="2" Width="75" Command="{Binding SearchCommand}"/>
 
             <ComboBox Margin="2" VerticalAlignment="Center" DockPanel.Dock="Right" SelectedIndex="0" TabIndex="1" MinWidth="150"
-                      ItemsSource="{Binding Branches, Converter={StaticResource EnumerableNullReplaceConverter}, ConverterParameter='(local)'}" 
-                      SelectedValue="{Binding Branch, Mode=TwoWay, Converter={StaticResource NullReplaceConverter}, ConverterParameter='(local)'}" />
+                      ItemsSource="{Binding Branches, UpdateSourceTrigger=PropertyChanged}" 
+                      SelectedValue="{Binding Branch}"
+                      ItemTemplate="{StaticResource BranchTemplate}" 
+                      MinHeight="23.5"/>
 
             <ComboBox x:Name="SearchBox" Margin="2" Padding="2" VerticalContentAlignment="Center" TabIndex="0" IsEditable="True" 
-                     Text="{Binding Search, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Text="{Binding SearchController.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      ItemsSource="{Binding SearchHistory, UpdateSourceTrigger=PropertyChanged }" 
                      />
         </DockPanel>
 
         <DockPanel Grid.Row="1" Margin="6,0" LastChildFill="False">
             <CheckBox Margin="2" IsChecked="{Binding IsCaseSensitive, Mode=TwoWay}" VerticalAlignment="Center" Content="Case sensitive" />
-            <CheckBox Margin="2" IsChecked="{Binding IsRegex, Mode=TwoWay}" VerticalAlignment="Center" Content="Regex" />
-            <TextBlock Margin="12,0,6,0" VerticalAlignment="Center">Search type:</TextBlock>
+            <CheckBox Margin="20, 0, 0, 0" IsChecked="{Binding IsRegex, Mode=TwoWay}" VerticalAlignment="Center" Content="Regex" />
+            <TextBlock Margin="20,0,6,0" VerticalAlignment="Center">Search type:</TextBlock>
             <ComboBox Margin="2" VerticalAlignment="Center" MinWidth="150" SelectedIndex="{Binding SearchType, Mode=TwoWay, Converter={StaticResource SearchTypeConverter}}">
                 <ComboBoxItem>File content</ComboBoxItem>
                 <ComboBoxItem>Commit messages</ComboBoxItem>
             </ComboBox>
 
-            <TextBlock VerticalAlignment="Center" Margin="50,0,5,0">File filter:</TextBlock>
+            <TextBlock VerticalAlignment="Center" Margin="20,0,5,0">File filter:</TextBlock>
 
-            <TextBox MinWidth="100" Padding="2" VerticalAlignment="Center" Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"></TextBox>
+
+            <ComboBox MinWidth="100" Margin="2" Padding="2" VerticalContentAlignment="Center" VerticalAlignment="Center" IsEditable="True" 
+                      Text="{Binding Pattern, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
+                <ComboBoxItem>*</ComboBoxItem>
+                <ComboBoxItem>*.cs</ComboBoxItem>
+                <ComboBoxItem>*.csproj</ComboBoxItem>
+                <ComboBoxItem>*.cs;*.csproj</ComboBoxItem>
+                <ComboBoxItem>*.js;*.ts</ComboBoxItem>
+                <ComboBoxItem>*.css</ComboBoxItem>
+            </ComboBox>
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SaveResultsCommand}" Content=""
                     ToolTip="Save results" FontFamily="Segoe UI Symbol" Padding="5,2" />
             <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2" Command="{Binding SettingsCommand}" Content="" 
@@ -63,7 +78,8 @@
         </DockPanel>
         
         <!-- Search results -->
-        <TabControl x:Name="TabControl" Grid.Row="2" Margin="4" ItemsSource="{Binding SearchResults}" SelectedIndex="{Binding ActiveTabIndex}" Panel.ZIndex="1000">
+        <TabControl x:Name="TabControl" Grid.Row="2" Margin="4" ItemsSource="{Binding SearchController}"
+                    SelectedIndex="{Binding SearchController.CurrentIndex}" Panel.ZIndex="1000">
             <TabControl.ItemContainerStyle>
                 <Style TargetType="{x:Type TabItem}">
                     <Setter Property="Visibility" Value="{Binding TabVisibility}"/>
@@ -115,7 +131,7 @@
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
                 <DataTemplate>
-                    <views:SearchResultsView />
+                    <views:SearchView />
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
@@ -129,7 +145,7 @@
                         <Run Text="Cancel" />
                     </Hyperlink>
                     <Run Text=")" />
-                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
+                    <Run Text="{Binding CurrentRepository.Path, Mode=OneWay}" />
                     <Run Text=" ..." />
                 </TextBlock>
             </StatusBarItem>
