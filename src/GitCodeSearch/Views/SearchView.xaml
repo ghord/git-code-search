@@ -1,26 +1,34 @@
-﻿<UserControl x:Class="GitCodeSearch.Views.SearchResultsView"
+﻿<UserControl x:Class="GitCodeSearch.Views.SearchView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:views="clr-namespace:GitCodeSearch.Views" 
              xmlns:viewmodels="clr-namespace:GitCodeSearch.ViewModels" 
-             d:DataContext="{d:DesignInstance Type=viewmodels:SearchResultsViewModel}"
+             xmlns:converters="clr-namespace:GitCodeSearch.Converters"
+             d:DataContext="{d:DesignInstance Type=viewmodels:SearchViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
+        <converters:FileTypeToColorConverter x:Key="FileTypeToColorConverter" />
 
+        <views:SearchTemplateSelector x:Key="SearchTemplateSelector">
 
-        <views:SearchResultTemplateSelector x:Key="SearchResultTemplateSelector">
-
-            <views:SearchResultTemplateSelector.FileContentTemplate>
+            <views:SearchTemplateSelector.FileContentTemplate>
                 <DataTemplate>
                     <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                        <TextBlock.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.ShowPreviewCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                          CommandParameter="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TextBlock}}" />
+                        </TextBlock.InputBindings>
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
-                        <Hyperlink ToolTip="{Binding Path}" ToolTipService.ShowDuration="60000">
-                            <Run Text="{Binding ShortPath, Mode=OneWay}"  />
-                        </Hyperlink>
+                        <Run Text="{Binding ShortPath, Mode=OneWay}"
+                             ToolTip="{Binding Path}"
+                             ToolTipService.ShowDuration="60000"
+                             Foreground="{Binding FileType, Converter={StaticResource FileTypeToColorConverter}}"
+                             FontWeight="Bold" />
                         <Run Text="{Binding Text, Mode=OneWay}" />
                         <TextBlock.ContextMenu>
                             <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
@@ -49,16 +57,19 @@
                         </TextBlock.ContextMenu>
                     </TextBlock>
                 </DataTemplate>
-            </views:SearchResultTemplateSelector.FileContentTemplate>
+            </views:SearchTemplateSelector.FileContentTemplate>
 
-            <views:SearchResultTemplateSelector.CommitMessageTemplate>
+            <views:SearchTemplateSelector.CommitMessageTemplate>
                 <DataTemplate>
                     <TextBlock TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
-                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">   
+                               Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                        <TextBlock.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.ShowCommitCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                          CommandParameter="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TextBlock}}" />
+                        </TextBlock.InputBindings>
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
-                        <Hyperlink ToolTip="{Binding LongHash}" ToolTipService.ShowDuration="60000">
-                            <Run Text="{Binding Hash, Mode=OneWay}"  />
-                        </Hyperlink>         
+                        <Run Text="{Binding Hash, Mode=OneWay}" Foreground="CornflowerBlue"/>
                         <Run Text="{Binding Message, Mode=OneWay}" />
                         <TextBlock.ContextMenu>
                             <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}">
@@ -72,36 +83,54 @@
                         </TextBlock.ContextMenu>
                     </TextBlock>
                 </DataTemplate>
-            </views:SearchResultTemplateSelector.CommitMessageTemplate>
+            </views:SearchTemplateSelector.CommitMessageTemplate>
 
-            <views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
+            <views:SearchTemplateSelector.InactiveRepositoryTemplate>
                 <DataTemplate>
                     <TextBlock Foreground="DarkGray" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
-                        <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Text, Mode=OneWay}" />
+                        <TextBlock.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.SearchRepositoryCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                          CommandParameter="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TextBlock}}" />
+                        </TextBlock.InputBindings>
+                        <Run Text="{Binding Repository.Name, Mode=OneWay}" FontWeight="Bold" />
+                        <Run Text="{Binding Mode=OneWay}" />
                         <TextBlock.ContextMenu>
                             <ContextMenu DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource Self}}" Placement="Center">
                                 <MenuItem Header="Search repository" FontWeight="Bold"
                                           Command="{Binding Tag.SearchRepositoryCommand}"
                                           CommandParameter="{Binding DataContext}" />
+                                <MenuItem Header="Activate"
+                                          Command="{Binding Tag.ActivateRepositoryCommand}"
+                                          CommandParameter="{Binding DataContext}" />
                             </ContextMenu>
                         </TextBlock.ContextMenu>
                     </TextBlock>
                 </DataTemplate>
-            </views:SearchResultTemplateSelector.InactiveRepositoryTemplate>
+            </views:SearchTemplateSelector.InactiveRepositoryTemplate>
 
-            <views:SearchResultTemplateSelector.MissingBranchRepositoryTemplate>
+            <views:SearchTemplateSelector.MissingBranchRepositoryTemplate>
                 <DataTemplate>
                     <TextBlock Foreground="DarkGray" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
                             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Text, Mode=OneWay}" />
+                        <Run Text="{Binding Mode=OneWay}" />
                     </TextBlock>
                 </DataTemplate>
-            </views:SearchResultTemplateSelector.MissingBranchRepositoryTemplate>
+            </views:SearchTemplateSelector.MissingBranchRepositoryTemplate>
 
-        </views:SearchResultTemplateSelector>
+            <views:SearchTemplateSelector.ErrorTemplate>
+                <DataTemplate>
+                    <TextBlock Foreground="Red" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
+                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                    <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
+                    <Run Text="{Binding Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchTemplateSelector.ErrorTemplate>
+
+        </views:SearchTemplateSelector>
 
     </UserControl.Resources>
     <Grid>
@@ -113,13 +142,6 @@
                  ItemsSource="{Binding Results}" 
                  ScrollViewer.VerticalScrollBarVisibility="Visible" 
                  FontFamily="Consolas" 
-                 ItemTemplateSelector="{StaticResource SearchResultTemplateSelector}">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem">
-                    <EventSetter Event="MouseDoubleClick" Handler="ListBoxItem_MouseDoubleClick" />
-                </Style>
-            </ListBox.ItemContainerStyle>
-        </ListBox>
-
+                 ItemTemplateSelector="{StaticResource SearchTemplateSelector}" />
     </Grid>
 </UserControl>

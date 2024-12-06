@@ -13,15 +13,17 @@
         <!-- Preview editor theme -->
         <StackPanel Orientation="Horizontal">
             <TextBlock Text="Preview editor theme:" Margin="4" VerticalAlignment="Center"/>
-            <ComboBox ItemsSource="{Binding PreviewThemes}" 
-                      SelectedItem="{Binding PreviewTheme, Mode=TwoWay}"
-                      Margin="4"
-                      MinWidth="75">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
+            <ComboBox Text="{Binding PreviewTheme}" Margin="4" MinWidth="75">
+                <ComboBoxItem>vs</ComboBoxItem>
+                <ComboBoxItem>vs-dark</ComboBoxItem>
+                <ComboBoxItem>hc-black</ComboBoxItem>
+                <ComboBoxItem>monokai</ComboBoxItem>
+                <ComboBoxItem>github-dark</ComboBoxItem>
+                <ComboBoxItem>github-light</ComboBoxItem>
+                <ComboBoxItem>clouds</ComboBoxItem>
+                <ComboBoxItem>clouds-midnight</ComboBoxItem>
+                <ComboBoxItem>xcode-default</ComboBoxItem>
+                <ComboBoxItem>pastels-on-dark</ComboBoxItem>
             </ComboBox>
         </StackPanel>
         

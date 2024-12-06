@@ -8,7 +8,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-        <DockPanel Grid.Column="1">
+        <DockPanel>
             <Grid DockPanel.Dock="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -23,13 +23,14 @@
                 <!-- Add/Remove repository buttons -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Content="➕"
-                            Click="FindRepositories_Click"
+                            Command="{Binding AddRepositoriesCommand}"
                             ToolTip="Add repositories"
                             FontFamily="Segoe UI Symbol"
                             Padding="5,2"
                             Margin="2"/>
                     <Button Content="➖"
-                            Click="RemoveRepositories_Click"
+                            Command="{Binding RemoveRepositoriesCommand}"
+                            CommandParameter="{Binding ElementName=RepositoriesDataGrid, Path=SelectedItems}"
                             ToolTip="Remove repositories"
                             FontFamily="Segoe UI Symbol"
                             Padding="5,2"
@@ -51,7 +52,7 @@
                       x:Name="RepositoriesDataGrid"
                       HorizontalGridLinesBrush="Silver" 
                       VerticalGridLinesBrush="Silver" 
-                      ItemsSource="{Binding GitRepositories, Mode=TwoWay}"
+                      ItemsSource="{Binding Repositories, Mode=TwoWay}"
                       SelectionMode="Extended"
                       AutoGeneratingColumn="RepositoriesDataGrid_AutoGeneratingColumn"
                       Margin="4"/>

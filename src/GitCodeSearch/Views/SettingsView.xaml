@@ -4,14 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:GitCodeSearch.Views"
-             xmlns:utilities="clr-namespace:GitCodeSearch.Utilities" 
+             xmlns:converters="clr-namespace:GitCodeSearch.Converters" 
              xmlns:viewmodels="clr-namespace:GitCodeSearch.ViewModels"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=viewmodels:SettingsViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="6">
         <Grid.Resources>
-            <utilities:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
+            <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
         </Grid.Resources>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200" />
@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Sections -->
         <ListBox x:Name="SettingsSections" ItemsSource="{Binding SettingsSections}" SelectionMode="Single" Margin="2">
             <ListBox.ItemTemplate>
                 <DataTemplate>
@@ -31,11 +32,7 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-
-        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Padding="5,2" MinWidth="75" Margin="2" Content="Ok" Click="Button_Click" />
-            <Button Padding="5,2" MinWidth="75" Margin="2" Content="Cancel" IsCancel="True" />
-        </StackPanel>
+        <!-- TabControl with settings views -->
         <TabControl Grid.Column="1" SelectedIndex="{Binding ElementName=SettingsSections, Path=SelectedIndex}" BorderThickness="0">
             <TabControl.ItemContainerStyle>
                 <Style TargetType="{x:Type TabItem}">
@@ -48,6 +45,15 @@
             <TabItem>
                 <local:UserInterfaceSettingsView />
             </TabItem>
+            <TabItem>
+                <local:BranchesSettingsView />
+            </TabItem>
         </TabControl>
+        
+        <!-- Ok, Cancel buttons -->
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Padding="5,2" MinWidth="75" Margin="2" Content="Ok" Click="Button_Click" />
+            <Button Padding="5,2" MinWidth="75" Margin="2" Content="Cancel" IsCancel="True" />
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -1,32 +1,31 @@
 ﻿using System;
 using System.Windows.Data;
 
-namespace GitCodeSearch.Converters
+namespace GitCodeSearch.Converters;
+
+public class EnumConverter : IValueConverter
 {
-    public class EnumConverter : IValueConverter
+    public Type? EnumType { get; set; }
+
+    public object Convert(object value, Type targetType, object? parameter,
+                          System.Globalization.CultureInfo culture)
     {
-        public Type? EnumType { get; set; }
+        if (value is Enum e)
+        {
+            return System.Convert.ToInt32(e);
+        }
 
-        public object? Convert(object? value, Type targetType, object? parameter,
+        return 0;
+    }
+
+    public object ConvertBack(object value, Type targetType, object? parameter,
                               System.Globalization.CultureInfo culture)
+    {
+        if(EnumType is not null && value is int e)
         {
-            if (value is Enum e)
-            {
-                return System.Convert.ToInt32(e);
-            }
-
-            return null;
+            return Enum.ToObject(EnumType, e);
         }
 
-        public object? ConvertBack(object? value, Type targetType, object? parameter,
-                                  System.Globalization.CultureInfo culture)
-        {
-            if(EnumType is not null && value is int e)
-            {
-                return Enum.ToObject(EnumType, e);
-            }
-
-            throw new NotSupportedException();
-        }
+        throw new NotSupportedException();
     }
 }

@@ -1,109 +1,74 @@
-﻿using GitCodeSearch.Model;
-using GitCodeSearch.ViewModels;
-using System;
-using System.Threading.Tasks;
+﻿using GitCodeSearch.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace GitCodeSearch
+namespace GitCodeSearch;
+
+/// <summary>
+/// Interaction logic for MainWindow.xaml
+/// </summary>
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    private MainViewModel ViewModel
     {
-        public MainWindow()
+        get => field;
+        set
         {
-            InitializeComponent();
-            LoadDataContextAsync().WaitAndDispatch();
+            field = value;
+            DataContext = value;
         }
+    }
 
-        private async Task LoadDataContextAsync()
-        {
-            await Settings.LoadAsync();
-            var viewModel = new MainViewModel(this);
-            await viewModel.UpdateBranchesAsync();
-            this.DataContext = viewModel;
-        }
+    public MainWindow()
+    {
+        InitializeComponent();
+        ViewModel = new MainViewModel();
+    }
 
-        private async void Window_Closed(object sender, EventArgs e)
-        {
-            await Settings.SaveAsync();
-        }
+    private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+    {
+        CloseTabItem(sender);
+    }
 
-        private void Search_Click(object sender, RoutedEventArgs e)
-        {
-            var viewModel = (MainViewModel)DataContext;
-            CancelSearch();
-
-            viewModel.SearchCommand.Execute(null);
-        }
-
-        private void CancelSearch()
-        {
-            var viewModel = (MainViewModel)DataContext;
-            if (viewModel.SearchCommand.IsRunning)
-            {
-                viewModel.SearchCommand.CancelCommand?.Execute(null);
-            }
-        }
-
-        private void CloseButton_Click(object sender, MouseButtonEventArgs e)
+    private void TabItem_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle)
         {
             CloseTabItem(sender);
         }
+    }
 
-        private void TabItem_Click(object sender, MouseButtonEventArgs e)
+    private void CloseTabItem(object sender)
+    {
+        if (sender is FrameworkElement frameworkElement 
+            && frameworkElement.DataContext is SearchViewModel searchResultsViewModel)
         {
-            if (e.ChangedButton == MouseButton.Middle)
+            ViewModel.CloseTab(searchResultsViewModel);
+        }
+    }
+
+    private void TabItem_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.Source is TabItem tabItem)
+        {
+            if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
             {
-                CloseTabItem(sender);
+                DragDrop.DoDragDrop(tabItem, tabItem, DragDropEffects.All);
             }
         }
+    }
 
-        private void CloseTabItem(object sender)
+    private void TabItem_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Source is TabItem targetTabItem &&
+            e.Data.GetData(typeof(TabItem)) is TabItem sourceTabItem &&
+            !targetTabItem.Equals(sourceTabItem))
         {
-            if (sender is FrameworkElement frameworkElement)
-            {
-                var viewModel = (MainViewModel)DataContext;
-                var searchResultViewModel = (SearchResultsViewModel)frameworkElement.DataContext;
+            var sourceSearchResults = (SearchViewModel)sourceTabItem.DataContext;
+            var targetSearchResults = (SearchViewModel)targetTabItem.DataContext;
 
-                if (viewModel.IsActiveSearchResults(searchResultViewModel))
-                {
-                    CancelSearch();
-                }
-
-                viewModel.SearchResults.Remove(searchResultViewModel);
-            }
-        }
-
-        private void TabItem_PreviewMouseMove(object sender, MouseEventArgs e)
-        {
-            if (e?.Source is TabItem tabItem)
-            {
-                if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
-                {
-                    DragDrop.DoDragDrop(tabItem, tabItem, DragDropEffects.All);
-                }
-            }
-        }
-
-        private void TabItem_Drop(object sender, DragEventArgs e)
-        {
-            if (e.Source is TabItem targetTabItem &&
-                e.Data.GetData(typeof(TabItem)) is TabItem sourceTabItem &&
-                !targetTabItem.Equals(sourceTabItem))
-            {
-                var viewModel = (MainViewModel)DataContext;
-                var sourceSearchResults = (SearchResultsViewModel)sourceTabItem.DataContext;
-                var targetSearchResults = (SearchResultsViewModel)targetTabItem.DataContext;
-                int targetIndex = viewModel.SearchResults.IndexOf(targetSearchResults);
-
-                viewModel.SearchResults.Remove(sourceSearchResults);
-                viewModel.SearchResults.Insert(targetIndex, sourceSearchResults);
-                viewModel.ActiveTabIndex = targetIndex;
-            }
+            ViewModel.SearchController.MoveTo(sourceSearchResults, targetSearchResults);
         }
     }
 }

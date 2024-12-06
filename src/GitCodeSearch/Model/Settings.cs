@@ -1,78 +1,80 @@
 ﻿using GitCodeSearch.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
-namespace GitCodeSearch.Model
+namespace GitCodeSearch.Model;
+
+public enum SearchType
 {
-    public enum SearchType
+    FileContent = 0,
+    CommitMessage = 1
+}
+
+public class Settings
+{
+    [JsonPropertyName("GitRepositores")]
+    public Repositories Repositories { get; set; } = [];
+
+    [JsonInclude]
+    public Branch Branch = Branch.Empty;
+
+    [JsonIgnore]
+    public string Pattern = "*";
+
+    [JsonIgnore]
+    public SearchType SearchType;
+
+    /// <summary>
+    /// Gets or sets the regular expression for invalid branch names.
+    /// </summary>
+    [StringSyntax("Regex")]
+    public string InvalidBranchRegex { get; set; } = @"(.*\/cherry-pick-\w*)|(.*\/revert-\w*)|(.*\/.*-patch-\d*)|(.*\/TFS-\d+.*)";
+
+    [JsonInclude]
+    public bool IsCaseSensitive;
+    
+    [JsonInclude]
+    public bool IsRegex;
+
+    public bool ShowInactiveRepositoriesInSearchResult { get; set; }
+    
+    public bool WarnOnMissingBranch { get; set; } = true;
+
+    public string PreviewTheme { get; set; } = "vs";
+
+    public SearchHistory SearchHistory { get; set; } = [];
+
+    public bool UseTabs { get; set; }
+
+    public List<Branch> FavouriteBranches { get; set; } = [];
+
+    public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
+
+    public static Settings Current { get; set; } = new Settings();
+
+    public static void Load() => Current = Load(DefaultPath);
+    public static void Save() => Current.Save(DefaultPath);
+
+    private void Save(string path)
     {
-        FileContent = 0,
-        CommitMessage = 1
+        using var stream = File.Create(path);
+        JsonSerializer.Serialize(stream, this);
     }
 
-    public class Settings
+    private static Settings Load(string path)
     {
-        public List<GitRepository> GitRepositores { get; set; } = [];
-
-        public string? Branch { get; set; }
-
-        [JsonIgnore]
-        public string Pattern { get; set; } = "*";
-
-        [JsonIgnore]
-        public SearchType SearchType { get; set; }
-
-        public bool IsCaseSensitive { get; set; }
-
-        public bool IsRegex { get; set; }
-
-        public bool ShowInactiveRepositoriesInSearchResult { get; set; }
-
-        public string PreviewTheme { get; set; } = "vs";
-
-        public SearchHistory SearchHistory { get; set; } = [];
-
-        public bool UseTabs { get; set; }
-
-        public bool WarnOnMissingBranch { get; set; } = true;
-
-        public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
-
-        public static Settings Current { get; set; } = new Settings();
-
-        public static async Task LoadAsync()
+        try
         {
-            Current = await LoadAsync(DefaultPath);
+            using var stream = File.OpenRead(path);
+            return JsonSerializer.Deserialize<Settings>(stream) ?? new Settings();
         }
-
-        public static async Task SaveAsync()
+        catch
         {
-            await Current.SaveAsync(DefaultPath);
-        }
-
-        private async Task SaveAsync(string path)
-        {
-            using var stream = File.Create(path);
-            await JsonSerializer.SerializeAsync(stream, this);
-        }
-
-        private async static Task<Settings> LoadAsync(string path)
-        {
-            try
-            {
-                using var stream = File.OpenRead(path);
-                var result = await JsonSerializer.DeserializeAsync<Settings>(stream);
-
-                return result ?? new Settings();
-            }
-            catch
-            {
-                return new Settings();
-            }
+            return new Settings();
         }
     }
 }

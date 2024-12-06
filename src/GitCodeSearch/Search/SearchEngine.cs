@@ -1,40 +1,41 @@
 ﻿using GitCodeSearch.Model;
+using GitCodeSearch.Search.Provider;
+using GitCodeSearch.Search.Result;
+using GitCodeSearch.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace GitCodeSearch.Search
 {
-    public class SearchEngine(string Search, ObservableCollection<ISearchResult> Results, Action<string?> OnRepositorySearch)
+    public class SearchEngine(string Search, ObservableCollection<ISearchResult> Results, Action<Repository?> OnRepositorySearch)
     {
-        public SearchType SearchType { get; set; } = Settings.Current.SearchType;
-        public string Pattern { get; set; } = Settings.Current.Pattern;
-        public string? Branch { get; set; } = Settings.Current.Branch;
-        public bool IsCaseSensitive { get; set; } = Settings.Current.IsCaseSensitive;
-        public bool IsRegex { get; set; } = Settings.Current.IsRegex;
+        public SearchType SearchType { get; } = Settings.Current.SearchType;
+        public string Pattern { get; } = Settings.Current.Pattern;
+        public Branch Branch { get; } = Settings.Current.Branch;
+        public bool IsCaseSensitive { get; } = Settings.Current.IsCaseSensitive;
+        public bool IsRegex { get; } = Settings.Current.IsRegex;
 
-        /// <summary>
-        /// Performs an asynchronous search across all repositories.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
         public async Task SearchAsync(CancellationToken cancellationToken)
         {
-            foreach (var repository in Settings.Current.GitRepositores.OrderByDescending(GitHelper.IsActiveRepository))
+            foreach (var repository in Settings.Current.Repositories.OrderByDescending(r => r.IsActiveRepository()))
             {
-                OnRepositorySearch.Invoke(repository.Path);
+                OnRepositorySearch.Invoke(repository);
 
-                if (!GitHelper.IsActiveRepository(repository) && !Settings.Current.ShowInactiveRepositoriesInSearchResult)
+                if (!repository.IsActiveRepository() && !Settings.Current.ShowInactiveRepositoriesInSearchResult)
                 {
                     continue;
                 }
 
-                var query = CreateSearchQuery(repository);
+                ISearchProvider searchProvider = CreateSearchProvider(repository);
 
-                if (GitHelper.IsActiveRepository(repository))
+                if (repository.IsActiveRepository())
                 {
-                    await foreach (var result in CreateSearch(query).SearchAsync(cancellationToken))
+                    await foreach (var result in SearchRepositoryInternalAsync(searchProvider, cancellationToken))
                     {
                         Results.Add(result);
                     }
@@ -42,7 +43,7 @@ namespace GitCodeSearch.Search
                 else
                 {
                     int count = 0;
-                    await foreach (var result in CreateSearch(query).SearchAsync(cancellationToken))
+                    await foreach (var result in SearchRepositoryInternalAsync(searchProvider, cancellationToken))
                     {
                         if(result is not MissingBranchRepositorySearchResult)
                             count++;
@@ -55,7 +56,7 @@ namespace GitCodeSearch.Search
 
                     if (count > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        Results.Add(new InactiveRepositorySearchResult(query, count));
+                        Results.Add(new InactiveRepositorySearchResult(repository, count));
                     }
                 }
 
@@ -66,12 +67,11 @@ namespace GitCodeSearch.Search
             OnRepositorySearch.Invoke(null);
         }
 
-        public async Task SearchRepositoryAsync(GitRepository repository, int index, CancellationToken cancellationToken)
+        public async Task SearchRepositoryAsync(Repository repository, int index, CancellationToken cancellationToken)
         {
-            var query = CreateSearchQuery(repository);
-
             bool first = true;
-            await foreach (var result in CreateSearch(query).SearchAsync(cancellationToken))
+            ISearchProvider searchProvider = CreateSearchProvider(repository);
+            await foreach (var result in SearchRepositoryInternalAsync(searchProvider, cancellationToken))
             {
                 if (first)
                 {
@@ -87,25 +87,35 @@ namespace GitCodeSearch.Search
             }
         }
 
-        private ISearch CreateSearch(SearchQuery searchQuery)
+        private static async IAsyncEnumerable<ISearchResult> SearchRepositoryInternalAsync(ISearchProvider provider, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var line in GitProcess.RunLinesAsync(provider.Repository, provider.GetArguments(), cancellationToken))
+            {
+                if (provider.TryParseSearchResult(line, out var searchResult))
+                    yield return searchResult;
+                else if (provider.TryParseErrorResult(line, out var errorResult))
+                    yield return errorResult;
+            }
+        }
+
+        private ISearchProvider CreateSearchProvider(Repository repository)
         {
             return SearchType switch
             {
-                SearchType.FileContent => new FileContentSearch(searchQuery),
-                SearchType.CommitMessage => new CommitMessageSearch(searchQuery),
+                SearchType.FileContent => new FileContentSearchProvider(CreateSearchQuery<FileContentSearchQuery>(repository)),
+                SearchType.CommitMessage => new CommitMessageSearchProvider(CreateSearchQuery<CommitMessageSearchQuery>(repository)),
                 _ => throw new InvalidOperationException("Invalid search type"),
             };
         }
 
-        private SearchQuery CreateSearchQuery(GitRepository repository)
+        private T CreateSearchQuery<T>(Repository repository) where T : SearchQuery
         {
             return SearchType switch
             {
-                SearchType.FileContent => new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive, IsRegex),
-                SearchType.CommitMessage => new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive, IsRegex),
+                SearchType.FileContent => (T)(SearchQuery)new FileContentSearchQuery(Search, Pattern, Branch, repository, IsCaseSensitive, IsRegex),
+                SearchType.CommitMessage => (T)(SearchQuery)new CommitMessageSearchQuery(Search, Branch, repository, IsCaseSensitive, IsRegex),
                 _ => throw new InvalidOperationException("Invalid search type"),
             };
         }
-
     }
 }
