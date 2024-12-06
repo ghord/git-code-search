@@ -2,6 +2,7 @@
 using GitCodeSearch.Search.Result;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace GitCodeSearch.Search.Provider;
 
@@ -13,7 +14,7 @@ public abstract class AbstractSearchProvider(SearchQuery query) : ISearchProvide
 
     public bool TryParseErrorResult(string error, [NotNullWhen(true)] out ISearchResult? errorResult)
     {
-        if (error.StartsWith("fatal: unable to resolve revision"))
+        if (error.StartsWith("fatal: unable to resolve revision") || error.StartsWith("fatal: ambiguous argument"))
         {
             errorResult = new MissingBranchRepositorySearchResult(query);
             return Settings.Current.WarnOnMissingBranch;
