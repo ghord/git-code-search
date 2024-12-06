@@ -11,4 +11,5 @@ public interface ISearchProvider
 
     IEnumerable<string> GetArguments();
     bool TryParseSearchResult(string text, [NotNullWhen(true)] out ISearchResult? searchResult);
+    bool TryParseErrorResult(string error, [NotNullWhen(true)] out ISearchResult? errorResult);
 }

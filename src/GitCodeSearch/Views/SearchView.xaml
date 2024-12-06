@@ -23,7 +23,6 @@
                                           Command="{Binding DataContext.ShowPreviewCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                           CommandParameter="{Binding DataContext, RelativeSource={RelativeSource AncestorType=TextBlock}}" />
                         </TextBlock.InputBindings>
-                        <Run Text="{Binding DataContext.ShowPreviewCommand, RelativeSource={RelativeSource AncestorType=ListBox}, Mode=OneWay}" />
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
                         <Run Text="{Binding ShortPath, Mode=OneWay}"
                              ToolTip="{Binding Path}"
@@ -116,10 +115,20 @@
                     <TextBlock Foreground="DarkGray" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
                             Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
                         <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
-                        <Run Text="{Binding Text, Mode=OneWay}" />
+                        <Run Text="{Binding Mode=OneWay}" />
                     </TextBlock>
                 </DataTemplate>
             </views:SearchTemplateSelector.MissingBranchRepositoryTemplate>
+
+            <views:SearchTemplateSelector.ErrorTemplate>
+                <DataTemplate>
+                    <TextBlock Foreground="Red" TextTrimming="CharacterEllipsis" MaxWidth="6000" TextWrapping="NoWrap"
+                                Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                    <Run Text="{Binding Query.Repository.Name, Mode=OneWay}" FontWeight="Bold" />
+                    <Run Text="{Binding Mode=OneWay}" />
+                    </TextBlock>
+                </DataTemplate>
+            </views:SearchTemplateSelector.ErrorTemplate>
 
         </views:SearchTemplateSelector>
 

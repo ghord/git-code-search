@@ -32,6 +32,11 @@ public static class GitProcess
         }
 
         await process.WaitForExitAsync(cancellationToken);
+
+        if(process.ExitCode != 0)
+        {
+            yield return process.StandardError.ReadToEnd();
+        }
     }
 
     public static async Task<string> RunAsync(Repository repository, IEnumerable<string> arguments, CancellationToken cancellationToken = default)
@@ -67,6 +72,7 @@ public static class GitProcess
             WorkingDirectory = repository.Path,
             StandardOutputEncoding = Encoding.UTF8,
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             CreateNoWindow = true
         };
 

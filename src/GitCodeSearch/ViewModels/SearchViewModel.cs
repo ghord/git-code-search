@@ -142,11 +142,14 @@ public class SearchViewModel : ViewModelBase
         var directory = Directory.GetParent(searchResult.FullPath);
         while (directory != null)
         {
-            var files = directory.GetFiles("*.sln");
-            if (files.Length != 0)
+            if (directory.Exists)
             {
-                ExplorerHelper.OpenFileInDefaultProgram(files[0].FullName);
-                return;
+                var files = directory.GetFiles("*.sln");
+                if (files.Length != 0)
+                {
+                    ExplorerHelper.OpenFileInDefaultProgram(files[0].FullName);
+                    return;
+                }
             }
             directory = directory.Parent;
         }

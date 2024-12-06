@@ -93,6 +93,8 @@ namespace GitCodeSearch.Search
             {
                 if (provider.TryParseSearchResult(line, out var searchResult))
                     yield return searchResult;
+                else if (provider.TryParseErrorResult(line, out var errorResult))
+                    yield return errorResult;
             }
         }
 

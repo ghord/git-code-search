@@ -14,6 +14,8 @@ public class SearchTemplateSelector : DataTemplateSelector
 
     public DataTemplate? MissingBranchRepositoryTemplate { get; set; }
 
+    public DataTemplate? ErrorTemplate { get; set; }
+
     public override DataTemplate? SelectTemplate(object item, DependencyObject container)
     {
         return item switch
@@ -22,6 +24,7 @@ public class SearchTemplateSelector : DataTemplateSelector
             CommitMessageSearchResult => CommitMessageTemplate,
             InactiveRepositorySearchResult => InactiveRepositoryTemplate,
             MissingBranchRepositorySearchResult => MissingBranchRepositoryTemplate,
+            ErrorSearchResult => ErrorTemplate,
             _ => base.SelectTemplate(item, container)
         };
     }

@@ -7,11 +7,11 @@ using System.Globalization;
 
 namespace GitCodeSearch.Search.Provider;
 
-public class CommitMessageSearchProvider(CommitMessageSearchQuery Query) : ISearchProvider
+public class CommitMessageSearchProvider(CommitMessageSearchQuery Query) : AbstractSearchProvider(Query)
 {
-    public Repository Repository => Query.Repository;
+    public override Repository Repository => Query.Repository;
 
-    public IEnumerable<string> GetArguments()
+    public override IEnumerable<string> GetArguments()
     {
         yield return "log";
         yield return Query.IsRegex ? "--perl-regexp" : "--fixed-strings";
@@ -30,7 +30,7 @@ public class CommitMessageSearchProvider(CommitMessageSearchQuery Query) : ISear
         }
     }
 
-    public bool TryParseSearchResult(string text, [NotNullWhen(true)] out ISearchResult? searchResult)
+    public override bool TryParseSearchResult(string text, [NotNullWhen(true)] out ISearchResult? searchResult)
     {
         searchResult = null;
 
