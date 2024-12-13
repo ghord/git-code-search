@@ -88,14 +88,7 @@ public class SearchViewModel : ViewModelBase
 
     private void OpenFile(FileContentSearchResult searchResult)
     {
-        try
-        {
-            Process.Start(searchResult.FullPath);
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine(e);
-        }
+        ExplorerHelper.OpenFileInDefaultProgram(searchResult.FullPath);
     }
 
     private async Task ViewFileInRemoteAsync(FileContentSearchResult searchResult)

@@ -51,7 +51,7 @@ public static class ExplorerHelper
         {
             using Process explorerProcess = new();
             explorerProcess.StartInfo.FileName = "explorer";
-            explorerProcess.StartInfo.Arguments = $"\"{filePath}\"";
+            explorerProcess.StartInfo.Arguments = $"\"{filePath.Replace('/', '\\')}\"";
             explorerProcess.Start();
         }
         catch (Exception e)
