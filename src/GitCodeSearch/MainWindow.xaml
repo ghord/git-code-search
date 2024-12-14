@@ -157,7 +157,7 @@
                         <Run Text="Cancel" />
                     </Hyperlink>
                     <Run Text=")" />
-                    <Run Text="{Binding CurrentRepository, Mode=OneWay}" />
+                    <Run Text="{Binding CurrentRepository.Path, Mode=OneWay}" />
                     <Run Text=" ..." />
                 </TextBlock>
             </StatusBarItem>
