@@ -20,7 +20,8 @@ public record FileContentSearchResult(string Text, string Path, int Line, int Co
 
     public async Task<string> GetFileContentAsync(CancellationToken token)
     {
-        return await GitProcess.RunAsync(Query.Repository, ["show", $"{Query.Branch ?? "HEAD"}:{Path}"], token);
+        string branch = string.IsNullOrEmpty(Query.Branch) || Query.Branch == "(local)" ? "HEAD" : Query.Branch;
+        return await GitProcess.RunAsync(Query.Repository, ["show", $"{branch}:{Path}"], token);
     }
 
     public override string ToString() => $"\"{FullPath}\":{Line}:{Column} {Text}";
@@ -45,3 +46,4 @@ public record FileContentSearchResult(string Text, string Path, int Line, int Co
         };
     }
 }
+
