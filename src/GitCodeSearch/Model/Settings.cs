@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -52,29 +53,47 @@ public class Settings
 
     public List<Branch> FavouriteBranches { get; set; } = [];
 
-    public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
+    public static readonly string DefaultPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "gitcodesearch.json");
+    private static readonly string OldDefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
 
     public static Settings Current { get; set; } = new Settings();
 
-    public static void Load() => Current = Load(DefaultPath);
-    public static void Save() => Current.Save(DefaultPath);
-
-    private void Save(string path)
-    {
-        using var stream = File.Create(path);
-        JsonSerializer.Serialize(stream, this);
-    }
-
-    private static Settings Load(string path)
+    public static void Load()
     {
         try
         {
-            using var stream = File.OpenRead(path);
-            return JsonSerializer.Deserialize<Settings>(stream) ?? new Settings();
+            Current = ReadSettingsFromOldPath() ?? ReadSettingsFromFile(DefaultPath) ?? new();
         }
-        catch
+        catch (Exception ex)
         {
-            return new Settings();
+            Current = new();
         }
+    }
+
+    public static void Save()
+    {
+        using var stream = File.Create(DefaultPath);
+        JsonSerializer.Serialize(stream, Current);
+    }
+
+    private static Settings? ReadSettingsFromOldPath()
+    {
+        if (File.Exists(OldDefaultPath))
+        {
+            var settings = ReadSettingsFromFile(OldDefaultPath);
+            if (settings != null)
+            {
+                File.Delete(OldDefaultPath);
+                return settings;
+            }
+        }
+
+        return null;
+    }
+
+    private static Settings? ReadSettingsFromFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return JsonSerializer.Deserialize<Settings>(stream);
     }
 }

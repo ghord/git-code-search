@@ -9,10 +9,12 @@
         xmlns:converters="clr-namespace:GitCodeSearch.Converters"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         WindowStartupLocation="CenterScreen"
+        xmlns:local="clr-namespace:GitCodeSearch"
         mc:Ignorable="d" x:Name="Root"
         Title="Git Code Search" Height="768" Width="1024">
     <Window.Resources>
-        
+
+
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:EnumConverter EnumType="{x:Type m:SearchType}" x:Key="SearchTypeConverter" />
         <DataTemplate x:Key="BranchTemplate">
