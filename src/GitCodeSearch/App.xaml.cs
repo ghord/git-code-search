@@ -1,4 +1,4 @@
-﻿using GitCodeSearch.Model;
+﻿using GitCodeSearch.Utilities;
 using System.Windows;
 
 namespace GitCodeSearch;
@@ -10,7 +10,7 @@ public partial class App : Application
 {
     public App()
     {
-        Startup += (o, e) => Settings.Load();
-        Exit += (o, e) => Settings.Save();
+        Startup += (o, e) => SettingsManager.LoadSettings();
+        Exit += (o, e) => SettingsManager.SaveSettings();
     }
 }
