@@ -32,7 +32,7 @@ public class Branch(string branch)
     public static implicit operator string(Branch branch) => branch.ToString();
 
     private static string GetRemote(string branch) => branch.Split("/").First();
-    private static string GetBranch(string branch) => branch.Split("/").Last();
+    private static string GetBranch(string branch) => string.Join('/', branch.Split('/').Skip(1));
 
 
 }

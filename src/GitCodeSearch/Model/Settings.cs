@@ -1,9 +1,6 @@
 ﻿using GitCodeSearch.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace GitCodeSearch.Model;
@@ -36,12 +33,12 @@ public class Settings
 
     [JsonInclude]
     public bool IsCaseSensitive;
-    
+
     [JsonInclude]
     public bool IsRegex;
 
     public bool ShowInactiveRepositoriesInSearchResult { get; set; }
-    
+
     public bool WarnOnMissingBranch { get; set; } = true;
 
     public string PreviewTheme { get; set; } = "vs";
@@ -52,29 +49,5 @@ public class Settings
 
     public List<Branch> FavouriteBranches { get; set; } = [];
 
-    public static readonly string DefaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gitcodesearch");
-
     public static Settings Current { get; set; } = new Settings();
-
-    public static void Load() => Current = Load(DefaultPath);
-    public static void Save() => Current.Save(DefaultPath);
-
-    private void Save(string path)
-    {
-        using var stream = File.Create(path);
-        JsonSerializer.Serialize(stream, this);
-    }
-
-    private static Settings Load(string path)
-    {
-        try
-        {
-            using var stream = File.OpenRead(path);
-            return JsonSerializer.Deserialize<Settings>(stream) ?? new Settings();
-        }
-        catch
-        {
-            return new Settings();
-        }
-    }
 }

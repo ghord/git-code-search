@@ -1,4 +1,5 @@
 ﻿using GitCodeSearch.Model;
+using GitCodeSearch.Utilities;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections;
@@ -68,7 +69,7 @@ public class SettingsViewModel : ViewModelBase
             .ToList();
         Settings.Current.InvalidBranchRegex = InvalidBranchRegex;
 
-        Settings.Save();
+        SettingsManager.SaveSettings();
     }
 
     private void AddRepositories()
