@@ -49,5 +49,9 @@ public class Settings
 
     public List<Branch> FavouriteBranches { get; set; } = [];
 
+    public bool McpEnabled { get; set; }
+
+    public int McpPort { get; set; } = 3333;
+
     public static Settings Current { get; set; } = new Settings();
 }

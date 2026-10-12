@@ -130,6 +130,7 @@ public class MainViewModel : ViewModelBase
         if (DialogHelper.ShowDialog(view, "Settings"))
         {
             viewModel.ApplySettings();
+            await GitCodeSearch.Mcp.McpServerHost.TryApplyAsync(Settings.Current.McpEnabled, Settings.Current.McpPort);
             await UpdateBranchesAsync();
             SearchController.UpdateTabsVisibility();
         }

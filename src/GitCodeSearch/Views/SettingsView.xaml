@@ -48,8 +48,17 @@
             <TabItem>
                 <local:BranchesSettingsView />
             </TabItem>
+            <TabItem>
+                <local:McpSettingsView />
+            </TabItem>
         </TabControl>
         
+        <!-- MCP server status -->
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0">
+            <Ellipse Width="10" Height="10" Fill="{Binding McpStatusBrush}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding McpStatusText}" Margin="6,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+
         <!-- Ok, Cancel buttons -->
         <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Padding="5,2" MinWidth="75" Margin="2" Content="Ok" Click="Button_Click" />

@@ -1,4 +1,6 @@
-﻿using GitCodeSearch.Utilities;
+﻿using GitCodeSearch.Mcp;
+using GitCodeSearch.Model;
+using GitCodeSearch.Utilities;
 using System.Windows;
 
 namespace GitCodeSearch;
@@ -10,7 +12,15 @@ public partial class App : Application
 {
     public App()
     {
-        Startup += (o, e) => SettingsManager.LoadSettings();
-        Exit += (o, e) => SettingsManager.SaveSettings();
+        Startup += async (o, e) =>
+        {
+            SettingsManager.LoadSettings();
+            await McpServerHost.TryApplyAsync(Settings.Current.McpEnabled, Settings.Current.McpPort);
+        };
+        Exit += (o, e) =>
+        {
+            SettingsManager.SaveSettings();
+            McpServerHost.StopAsync().GetAwaiter().GetResult();
+        };
     }
 }

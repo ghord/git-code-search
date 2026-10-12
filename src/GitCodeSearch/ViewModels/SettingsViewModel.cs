@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
 
 #pragma warning disable CA1416 // This call site is reachable on all platforms. '{0}' is only supported on: 'Windows' 7.0 and later.
 
@@ -24,8 +25,13 @@ public class SettingsViewModel : ViewModelBase
         UserInterface,
 
         [Description("Branches")]
-        Branches
+        Branches,
+
+        [Description("MCP server")]
+        Mcp
     }
+
+    private int _mcpPort = Settings.Current.McpPort;
 
     public SettingsViewModel()
     {
@@ -50,6 +56,27 @@ public class SettingsViewModel : ViewModelBase
     public string FavouriteBranches { get; set; } = string.Join("\r\n", Settings.Current.FavouriteBranches);
     public string InvalidBranchRegex { get; set; } = Settings.Current.InvalidBranchRegex;
 
+    // MCP server section
+    public bool McpEnabled { get; set; } = Settings.Current.McpEnabled;
+    public int McpPort
+    {
+        get => _mcpPort;
+        set
+        {
+            SetField(ref _mcpPort, value);
+            RaisePropertyChanged(nameof(McpUrl));
+        }
+    }
+    public string McpStatusText =>
+        GitCodeSearch.Mcp.McpServerHost.IsRunning ? $"MCP server running at {GitCodeSearch.Mcp.McpServerHost.Url(GitCodeSearch.Mcp.McpServerHost.Port)}"
+        : GitCodeSearch.Mcp.McpServerHost.LastError is string error ? $"MCP server failed to start: {error}"
+        : "MCP server stopped";
+    public Brush McpStatusBrush =>
+        GitCodeSearch.Mcp.McpServerHost.IsRunning ? Brushes.Green
+        : GitCodeSearch.Mcp.McpServerHost.LastError != null ? Brushes.Red
+        : Brushes.Gray;
+    public string McpUrl => GitCodeSearch.Mcp.McpServerHost.Url(McpPort);
+
     public static IEnumerable<SettingsSection> SettingsSections => Enum.GetValues<SettingsSection>();
 
     internal void ApplySettings()
@@ -68,6 +95,9 @@ public class SettingsViewModel : ViewModelBase
             .Select(b => new Branch(b))
             .ToList();
         Settings.Current.InvalidBranchRegex = InvalidBranchRegex;
+
+        Settings.Current.McpEnabled = McpEnabled;
+        Settings.Current.McpPort = McpPort;
 
         SettingsManager.SaveSettings();
     }

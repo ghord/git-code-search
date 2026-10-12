@@ -14,11 +14,18 @@ namespace GitCodeSearch.Search
 {
     public class SearchEngine(string Search, ObservableCollection<ISearchResult> Results, Action<Repository?> OnRepositorySearch)
     {
-        public SearchType SearchType { get; } = Settings.Current.SearchType;
-        public string Pattern { get; } = Settings.Current.Pattern;
-        public Branch Branch { get; } = Settings.Current.Branch;
-        public bool IsCaseSensitive { get; } = Settings.Current.IsCaseSensitive;
-        public bool IsRegex { get; } = Settings.Current.IsRegex;
+        public SearchType SearchType { get; init; } = Settings.Current.SearchType;
+        public string Pattern { get; init; } = Settings.Current.Pattern;
+        public Branch Branch { get; init; } = Settings.Current.Branch;
+        public bool IsCaseSensitive { get; init; } = Settings.Current.IsCaseSensitive;
+        public bool IsRegex { get; init; } = Settings.Current.IsRegex;
+
+        /// <summary>
+        /// Creates an engine for a one-off search that does not use the UI result list. Set the properties to configure it.
+        /// </summary>
+        public SearchEngine(string search) : this(search, [], _ => { })
+        {
+        }
 
         public async Task SearchAsync(CancellationToken cancellationToken)
         {
@@ -86,6 +93,12 @@ namespace GitCodeSearch.Search
                 index++;
             }
         }
+
+        /// <summary>
+        /// Streams the results of a single repository without touching the result collection.
+        /// </summary>
+        public IAsyncEnumerable<ISearchResult> GetResultsAsync(Repository repository, CancellationToken cancellationToken) =>
+            SearchRepositoryInternalAsync(CreateSearchProvider(repository), cancellationToken);
 
         private static async IAsyncEnumerable<ISearchResult> SearchRepositoryInternalAsync(ISearchProvider provider, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
